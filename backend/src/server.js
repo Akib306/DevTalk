@@ -1,6 +1,7 @@
 import express from 'express';
 import { connectAndPing } from './db.js';
 import { initializeSchema } from './initDb.js';
+import authRoutes from './routes/auth.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -11,6 +12,9 @@ const app = express();
 const port = 3000;
 
 app.use(express.json());
+
+// Mount auth routes under /api/auth
+app.use('/api/auth', authRoutes);
 
 async function startServer() {
     try {
