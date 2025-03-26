@@ -14,4 +14,16 @@ const db = mysql.createPool({
     timezone: '-06:00'
 }).promise();
 
+export async function connectAndPing() {
+    try {
+        const connection = await db.getConnection();
+        await connection.ping();
+        console.log('Database connected to thread id ' + connection.threadId);
+        connection.release();
+    } catch (err) {
+        console.error('Error connecting to the database: ' + err.stack);
+        process.exit(1);
+    }
+}
+
 export default db;
