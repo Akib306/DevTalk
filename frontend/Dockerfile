@@ -10,4 +10,5 @@ COPY . .
 
 EXPOSE 5173
 
-CMD ["npm", "run", "dev"]
+# Run Vite with host flag for external access
+CMD ["npm", "run", "dev", "--", "--host"]
