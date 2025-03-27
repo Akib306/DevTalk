@@ -58,4 +58,50 @@ router.post('/reply', async (req, res) => {
     }
 });
 
+// POST /api/posts/rate - Rate a post
+router.post('/rate', async (req, res) => {
+    try {
+        const { user_id, post_id, rating } = req.body;
+        if (!user_id || !post_id || !rating) {
+            return res.status(400).json({ message: 'user_id, post_id, and rating are required.' });
+        }
+        if (rating !== 'up' && rating !== 'down') {
+            return res.status(400).json({ message: 'Rating must be either "up" or "down".' });
+        }
+        const [result] = await db.query(
+            `INSERT INTO post_ratings (user_id, post_id, rating)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE rating = ?`,
+            [user_id, post_id, rating, rating]
+        );
+        res.status(201).json({ message: 'Post rating recorded.' });
+    } catch (error) {
+        console.error('Error rating post:', error);
+        res.status(500).json({ message: 'Error rating post.' });
+    }
+});
+
+// POST /api/posts/reply/rate - Rate a reply
+router.post('/reply/rate', async (req, res) => {
+    try {
+        const { user_id, reply_id, rating } = req.body;
+        if (!user_id || !reply_id || !rating) {
+            return res.status(400).json({ message: 'user_id, reply_id, and rating are required.' });
+        }
+        if (rating !== 'up' && rating !== 'down') {
+            return res.status(400).json({ message: 'Rating must be either "up" or "down".' });
+        }
+        const [result] = await db.query(
+            `INSERT INTO reply_ratings (user_id, reply_id, rating)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE rating = ?`,
+            [user_id, reply_id, rating, rating]
+        );
+        res.status(201).json({ message: 'Reply rating recorded.' });
+    } catch (error) {
+        console.error('Error rating reply:', error);
+        res.status(500).json({ message: 'Error rating reply.' });
+    }
+});
+
 export default router;
