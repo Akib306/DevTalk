@@ -1,49 +1,64 @@
 services:
-  mysql:
-    image: mysql:9.2
-    container_name: mysql-9.2
-    environment:
-      MYSQL_DATABASE: dev_talk
-      MYSQL_ROOT_PASSWORD: pass
-    healthcheck:
-      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
-      timeout: 5s
-      retries: 10
-    ports:
-      - "3306:3306"
-    volumes:
-      - db_data:/var/lib/mysql
+    mysql:
+        image: mysql:9.2
+        container_name: mysql-9.2
+        environment:
+            MYSQL_DATABASE: dev_talk
+            MYSQL_ROOT_PASSWORD: pass
+        healthcheck:
+            test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+            timeout: 5s
+            retries: 10
+        ports:
+            - "3306:3306"
+        volumes:
+            - db_data:/var/lib/mysql
 
-  backend:
-    build: ./backend
-    container_name: backend
-    ports:
-      - "3000:3000"
-    depends_on:
-      mysql:
-        condition: service_healthy
-    environment:
-      DB_HOST: mysql
-      DB_USER: root
-      DB_PASSWORD: pass
-      DB_NAME: dev_talk
-    stdin_open: true
-    tty: true
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-  
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: phpmyadmin
-    restart: always
-    ports:
-      - "3307:80"
-    environment:
-      PMA_HOST: mysql
-      MYSQL_ROOT_PASSWORD: pass
-    depends_on:
-      - mysql
+    backend:
+        build: ./backend
+        container_name: backend
+        ports:
+            - "3000:3000"
+        depends_on:
+            mysql:
+                condition: service_healthy
+        environment:
+            DB_HOST: mysql
+            DB_USER: root
+            DB_PASSWORD: pass
+            DB_NAME: dev_talk
+        stdin_open: true
+        tty: true
+        volumes:
+            - ./backend:/app
+            - /app/node_modules
+    
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        container_name: phpmyadmin
+        restart: always
+        ports:
+            - "3307:80"
+        environment:
+            PMA_HOST: mysql
+            MYSQL_ROOT_PASSWORD: pass
+        depends_on:
+            - mysql
+    
+    frontend:
+        build: ./frontend
+        container_name: frontend
+        ports:
+            - "3001:5173"
+        volumes:
+            - ./frontend:/app
+            - /app/node_modules
+        environment:
+            - CHOKIDAR_USEPOLLING=true   # Helps with file change detection in Docker
+        stdin_open: true
+        tty: true
+        depends_on:
+            - backend
 
 volumes:
-  db_data:
+    db_data:
