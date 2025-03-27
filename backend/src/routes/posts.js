@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../db.js';
+import { authenticateToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -22,10 +23,11 @@ router.get('/', async (req, res) => {
     }
 });
 
-// POST /api/posts - Create a new top-level post
-router.post('/', async (req, res) => {
+// Protected: POST /api/posts - Create a new top-level post
+router.post('/', authenticateToken, async (req, res) => {
     try {
-        const { channel_id, user_id, content, image_url } = req.body;
+        const { channel_id, content, image_url } = req.body;
+        const user_id = req.user.userId;
         if (!channel_id || !user_id || !content) {
             return res.status(400).json({ message: 'channel_id, user_id, and content are required.' });
         }
@@ -40,10 +42,11 @@ router.post('/', async (req, res) => {
     }
 });
 
-// POST /api/posts/reply - Create a reply to a post or another reply
-router.post('/reply', async (req, res) => {
+// Protected: POST /api/posts/reply - Create a reply to a post or another reply
+router.post('/reply', authenticateToken, async (req, res) => {
     try {
-        const { post_id, parent_reply_id, user_id, content, image_url } = req.body;
+        const { post_id, parent_reply_id, content, image_url } = req.body;
+        const user_id = req.user.userId;
         if (!post_id || !user_id || !content) {
             return res.status(400).json({ message: 'post_id, user_id, and content are required.' });
         }
@@ -58,10 +61,11 @@ router.post('/reply', async (req, res) => {
     }
 });
 
-// POST /api/posts/rate - Rate a post
-router.post('/rate', async (req, res) => {
+// Protected: POST /api/posts/rate - Rate a post
+router.post('/rate', authenticateToken, async (req, res) => {
     try {
-        const { user_id, post_id, rating } = req.body;
+        const { post_id, rating } = req.body;
+        const user_id = req.user.userId;
         if (!user_id || !post_id || !rating) {
             return res.status(400).json({ message: 'user_id, post_id, and rating are required.' });
         }
@@ -81,10 +85,11 @@ router.post('/rate', async (req, res) => {
     }
 });
 
-// POST /api/posts/reply/rate - Rate a reply
-router.post('/reply/rate', async (req, res) => {
+// Protected: POST /api/posts/reply/rate - Rate a reply
+router.post('/reply/rate', authenticateToken, async (req, res) => {
     try {
-        const { user_id, reply_id, rating } = req.body;
+        const { reply_id, rating } = req.body;
+        const user_id = req.user.userId;
         if (!user_id || !reply_id || !rating) {
             return res.status(400).json({ message: 'user_id, reply_id, and rating are required.' });
         }

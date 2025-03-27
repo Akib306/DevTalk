@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../db.js';
+import { authenticateToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -15,10 +16,11 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/channels - Create a new channel
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
     try {
-        const { name, created_by } = req.body;
-        if (!name || !created_by) {
+        const { name } = req.body;
+        const created_by = req.user.userId;
+        if (!name) {
             return res.status(400).json({ message: 'Channel name and created_by are required.' });
         }
         const [result] = await db.query(
