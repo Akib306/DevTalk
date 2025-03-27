@@ -13,8 +13,10 @@ const port = 3000;
 
 app.use(express.json());
 
-// Mount auth routes under /api/auth
+// Mount routes
 app.use('/api/auth', authRoutes);
+app.use('/api/channels', channelsRoutes);
+app.use('/api/posts', postsRoutes);
 
 async function startServer() {
     try {
