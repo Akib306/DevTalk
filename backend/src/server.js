@@ -2,6 +2,8 @@ import express from 'express';
 import { connectAndPing } from './db.js';
 import { initializeSchema } from './initDb.js';
 import authRoutes from './routes/auth.js';
+import channelsRoutes from './routes/channels.js';
+import postsRoutes from './routes/posts.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
