@@ -1,7 +1,6 @@
-import {Navbar, NavbarBrand, NavbarContent, NavbarItem, Link, Button} from "@heroui/react";
+import {Navbar, NavbarBrand, NavbarContent, NavbarItem, Button} from "@heroui/react";
 import { useNavigate } from "react-router-dom";
-import logo from "../../public/favicon/favicon.svg";
-import Footer from "../components/Footer";
+import logo from "/favicon/favicon.svg";
 
 export default function LandingPage() {
     const navigate = useNavigate();
@@ -16,7 +15,11 @@ export default function LandingPage() {
                 
                 <NavbarContent justify="end">
                     <NavbarItem>
-                        <Button as={Link} color="primary" href="#" variant="ghost">
+                        <Button 
+                            onPress={() => navigate("/login")}
+                            color="primary" 
+                            variant="ghost"
+                        >
                             Login
                         </Button>
                     </NavbarItem>
@@ -40,7 +43,12 @@ export default function LandingPage() {
                     share solutions, and grow together — with nested replies, search, and ratings to make help easier to find.
                     </p>
                     <div className="mt-10 flex flex-col items-center gap-6">
-                        <Button color="primary" size="lg" variant="shadow">
+                        <Button
+                            onPress={() => navigate("/signup")}
+                            color="primary" 
+                            size="lg" 
+                            variant="shadow"
+                        >
                             Sign Up
                         </Button>
                         {/* Skeleton video card */}
