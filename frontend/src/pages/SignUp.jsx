@@ -5,34 +5,30 @@ import { Form, Input, Button } from "@heroui/react";
 export default function App() {
     const navigate = useNavigate();
     const [password, setPassword] = useState("");
-    const [submitted, setSubmitted] = useState(null);
     const [errors, setErrors] = useState({});
 
     // Real-time password validation
-    const getPasswordError = (value) => {
-        if (value.length < 4) {
-            return "Password must be 4 characters or more";
-        }
-        if ((value.match(/[A-Z]/g) || []).length < 1) {
-            return "Password needs at least 1 uppercase letter";
-        }
-        if ((value.match(/[^a-z]/gi) || []).length < 1) {
-            return "Password needs at least 1 symbol";
-        }
-        return null;
-    };
+    const passwordErrors = [];
+    if (password.length < 4) {
+        passwordErrors.push("Password must be 4 characters or more.");
+    }
+    if ((password.match(/[A-Z]/g) || []).length < 1) {
+        passwordErrors.push("Password must include at least 1 upper case letter.");
+    }
+    if ((password.match(/[^a-z]/gi) || []).length < 1) {
+        passwordErrors.push("Password must include at least 1 symbol.");
+    }
 
-    const onSubmit = (e) => {
+    const onSubmit = async (e) => {
         e.preventDefault();
         const data = Object.fromEntries(new FormData(e.currentTarget));
 
         // Custom validation checks
         const newErrors = {};
 
-        // Password validation
-        const passwordError = getPasswordError(data.password);
-        if (passwordError) {
-            newErrors.password = passwordError;
+         // If the password does not meet the criteria, add an error (this is optional since the password field shows errors on its own)
+        if (passwordErrors.length > 0) {
+            newErrors.password = passwordErrors.join(" ");
         }
 
         // Username validation
@@ -45,80 +41,107 @@ export default function App() {
             return;
         }
 
-        if (data.terms !== "true") {
-            setErrors({ terms: "Please accept the terms" });
-            return;
-        }
-
         // Clear errors and submit
         setErrors({});
-        setSubmitted(data);
+
+        // POST request to the server
+        try {
+            const response = await fetch("http://localhost:3000/api/auth/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    username: data.name,
+                    password: data.password,
+                })
+            });
+
+            if (!response.ok) {
+                if (response.status === 409) {
+                    setErrors({ name: "Username already exists. Please choose a different username." });
+                } else {
+                    setErrors({ global: "Registration failed. Please try again." });
+                }
+                return;
+            }
+            // On valid registration, navigate to /channels
+            await response.json(); // Optionally, process token or other response data
+            navigate('/channels');
+        } catch (error) {
+            setErrors({ global: "An error occurred. Please try again." });
+        }
+
     };
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-900 px-4">
-            <Form
-                validationErrors={errors}
-                onReset={() => setSubmitted(null)}
-                onSubmit={onSubmit}
-            >
-                <div className="flex flex-col gap-4">
-                    <Input
-                        isRequired
-                        errorMessage={({ validationDetails }) => {
-                            if (validationDetails.valueMissing) {
-                                return "Please enter your name";
-                            }
-                            return errors.name;
-                        }}
-                        label="Username"
-                        labelPlacement="outside"
-                        name="name"
-                        placeholder="Enter your name"
-                        className="w-full text-lg py-3"
-                    />
+            <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-gray-700/50">
+                <Form
+                    validationErrors={errors}
+                    onReset={() => { setErrors({}); setPassword(""); }}
+                    onSubmit={onSubmit}
+                >
+                    <div className="flex flex-col gap-8">
+                        <Input
+                            isRequired
+                            size="lg" 
+                            errorMessage={({ validationDetails }) => {
+                                if (validationDetails.valueMissing) {
+                                    return "Please enter your name";
+                                }
+                                return errors.name;
+                            }}
+                            label="Username"
+                            labelPlacement="outside"
+                            name="name"
+                            placeholder="Enter your name"
+                            className="w-[250px] sm:w-[300px] md:w-[350px] lg:w-[400px] text-lg py-3 h-14"
+                        />
 
-                    <Input
-                        isRequired
-                        errorMessage={getPasswordError(password)}
-                        isInvalid={getPasswordError(password) !== null}
-                        label="Password"
-                        labelPlacement="outside"
-                        name="password"
-                        placeholder="Enter your password"
-                        type="password"
-                        value={password}
-                        onValueChange={setPassword}
-                        className="w-full text-lg py-3"
-                    />
+                        <Input
+                            isRequired
+                            size="lg" 
+                            errorMessage={() => (
+                                <ul>
+                                    {passwordErrors.map((error, i) => (
+                                        <li key={i}>{error}</li>
+                                    ))}
+                                </ul>
+                            )}
+                            isInvalid={passwordErrors.length > 0}
+                            label="Password"
+                            labelPlacement="outside"
+                            name="password"
+                            placeholder="Enter your password"
+                            type="password"
+                            value={password}
+                            onValueChange={setPassword}
+                            className="w-[250px] sm:w-[300px] md:w-[350px] lg:w-[400px] text-lg py-3 h-14"
+                        />
 
-                    <div className="flex justify-center gap-4">
-                        <Button 
-                            size="md" 
-                            color="primary" 
-                            type="submit" 
-                            variant="shadow"
-                        >
-                            Sign Up
-                        </Button>
+                        <div className="flex justify-center gap-4 mt-14">
+                            <Button 
+                                size="lg" 
+                                color="primary" 
+                                type="submit" 
+                                variant="shadow"
+                            >
+                                Sign Up
+                            </Button>
 
-                        <Button 
-                            type="reset" 
-                            size="md" 
-                            variant="ghost" 
-                            onPress={() => navigate("/")}
-                        >
-                            Cancel
-                        </Button>
+                            <Button 
+                                type="reset" 
+                                size="lg" 
+                                variant="ghost" 
+                                onPress={() => navigate("/")}
+                            >
+                                Cancel
+                            </Button>
+                        </div>
                     </div>
-                </div>
-
-                {submitted && (
-                    <div className="text-sm text-gray-300 mt-4">
-                        Submitted data: <pre>{JSON.stringify(submitted, null, 2)}</pre>
-                    </div>
-                )}
-            </Form>
+                </Form>
+            </div>
         </div>
     );
 }

@@ -4,15 +4,15 @@ import { initializeSchema } from './initDb.js';
 import authRoutes from './routes/auth.js';
 import channelsRoutes from './routes/channels.js';
 import postsRoutes from './routes/posts.js';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import cors from 'cors';
 
 const app = express();
 const port = 3000;
 
+app.use(cors({
+    origin: 'http://localhost:5173', // Allow requests from the frontend
+    credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+}));
 app.use(express.json());
 
 // Mount routes
