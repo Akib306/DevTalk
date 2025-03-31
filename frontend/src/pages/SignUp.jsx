@@ -70,7 +70,7 @@ export default function App() {
 
             const { token } = await response.json();
             login(token); // Store the token and update auth state
-            navigate('/channels');
+            navigate('/dashboard');
         } catch (error) {
             setErrors({ global: "An error occurred. Please try again." });
         }

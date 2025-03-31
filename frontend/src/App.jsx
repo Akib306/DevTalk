@@ -2,7 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import LandingPage from "./pages/Landing";
 import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
-import Channels from './pages/Channels';
+import Dashboard from './pages/Dashboard';
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -18,10 +18,10 @@ function App() {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/login" element={<Login />} />
             <Route 
-              path="/channels" 
+              path="/dashboard" 
               element={
                 <ProtectedRoute>
-                  <Channels />
+                  <Dashboard />
                 </ProtectedRoute>
               } 
             />
