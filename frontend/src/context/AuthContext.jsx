@@ -1,10 +1,12 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         // Check for stored token on app load
@@ -14,6 +16,11 @@ export function AuthProvider({ children }) {
                 // Decode the token to get user info
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 setUser(payload);
+                
+                // Check if token is expired
+                if (payload.exp * 1000 <= Date.now()) {
+                    handleTokenExpiration();
+                }
             } catch (error) {
                 // If token is invalid, clear it
                 localStorage.removeItem('token');
@@ -22,9 +29,19 @@ export function AuthProvider({ children }) {
         setLoading(false);
     }, []);
 
+    const handleTokenExpiration = () => {
+        localStorage.removeItem('token');
+        setUser(null);
+        alert('Your session has expired. Please login again.');
+        setTimeout(() => {
+            navigate('/');
+        }, 3000);
+    };
+
     const login = (token) => {
         // Clear any existing token first
-        localStorage.removeItem('token');
+        localStorage.clear(); // Clear all storage
+        sessionStorage.clear(); // Clear session storage too
         // Set the new token
         localStorage.setItem('token', token);
         const payload = JSON.parse(atob(token.split('.')[1]));
@@ -32,8 +49,10 @@ export function AuthProvider({ children }) {
     };
 
     const logout = () => {
-        localStorage.removeItem('token');
+        localStorage.clear();
+        sessionStorage.clear();
         setUser(null);
+        navigate('/');
     };
 
     const isAuthenticated = () => {
@@ -43,7 +62,11 @@ export function AuthProvider({ children }) {
         if (!token) return false;
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));
-            return payload.exp * 1000 > Date.now();
+            if (payload.exp * 1000 <= Date.now()) {
+                handleTokenExpiration();
+                return false;
+            }
+            return true;
         } catch (error) {
             return false;
         }

@@ -61,25 +61,29 @@ export default function App() {
 
             if (!response.ok) {
                 if (response.status === 409) {
-                    setErrors({ name: "Username already exists. Please choose a different username." });
+                    setErrors({ global: "Username already exists." });
                 } else {
                     setErrors({ global: "Registration failed. Please try again." });
                 }
                 return;
             }
 
-            const { token } = await response.json();
-            login(token); // Store the token and update auth state
-            navigate('/dashboard');
+            // Registration successful, redirect to login
+            navigate('/login');
         } catch (error) {
             setErrors({ global: "An error occurred. Please try again." });
         }
-
     };
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-900 px-4">
             <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-gray-700/50">
+                <h1 className="text-2xl font-bold text-center mb-6 text-white">Sign Up</h1>
+                {errors.global && (
+                    <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-500 text-center">
+                        {errors.global}
+                    </div>
+                )}
                 <Form
                     validationErrors={errors}
                     onReset={() => { setErrors({}); setPassword(""); }}

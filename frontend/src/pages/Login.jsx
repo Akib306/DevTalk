@@ -48,6 +48,12 @@ export default function Login() {
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-900 px-4">
             <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-gray-700/50">
+                <h1 className="text-2xl font-bold text-center mb-6 text-white">Login</h1>
+                {errors.global && (
+                    <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-500 text-center">
+                        {errors.global}
+                    </div>
+                )}
                 <Form
                     validationErrors={errors}
                     onReset={() => setErrors({})}

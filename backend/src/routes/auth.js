@@ -2,10 +2,13 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import db from '../db.js';
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+// Generate a secure random secret on server start
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
+console.log('New JWT secret generated for this server session');
 
 router.post('/register', async (req, res) => {
     try {
@@ -29,10 +32,7 @@ router.post('/register', async (req, res) => {
             [username, hashedPassword]
         );
 
-        // Create a JWT token for the new user
-        const token = jwt.sign({ userId: result.insertId, username }, JWT_SECRET, { expiresIn: '1h' });
-
-        res.status(201).json({ token, message: 'User registered successfully.' });
+        res.status(201).json({ message: 'User registered successfully. Please login.' });
     } catch (error) {
         console.error('Error during registration:', error);
         res.status(500).json({ message: 'Server error during registration.' });
@@ -60,7 +60,12 @@ router.post('/login', async (req, res) => {
         }
 
         // Create a JWT token for the user
-        const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ 
+            userId: user.id, 
+            username: user.username,
+            iat: Date.now(),
+            nonce: crypto.randomBytes(16).toString('hex')
+        }, JWT_SECRET, { expiresIn: '1min' });
         res.json({ token, message: 'Login successful.' });
     } catch (error) {
         console.error('Error during login:', error);
