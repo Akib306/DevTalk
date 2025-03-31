@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import ChannelList from '../components/ChannelList';
 import ChannelContent from '../components/ChannelContent';
+import Footer from '../components/Footer';
 
-const Dashboard = ({ userChannels, serverChannels }) => {
-    // activeChannel is null when no channel is selected
+const Dashboard = ({ serverChannels }) => {
     const [activeChannel, setActiveChannel] = useState(null);
 
     const handleChannelClick = (channel) => {
@@ -13,31 +12,35 @@ const Dashboard = ({ userChannels, serverChannels }) => {
     };
 
     const handleBack = () => {
-        // To go back to the channel list view
         setActiveChannel(null);
     };
 
     return (
-        <div className="flex h-screen">
-        {/* Sidebar: DevTalk logo and user-created channels */}
-        <Sidebar userChannels={userChannels} />
-
-        <div className="flex flex-col flex-1">
-            {/* Navbar: search bar and user account avatar */}
+        <div className="relative h-screen">
             <Navbar />
-
-            <div className="flex-1 overflow-auto p-4">
-            {activeChannel ? (
-                // Render channel content view
-                <ChannelContent channel={activeChannel} onBack={handleBack} />
-            ) : (
-                // Render list of all channels in the server
-                <ChannelList channels={serverChannels} onChannelClick={handleChannelClick} />
-            )}
+            {/* Padding at top for the fixed navbar and bottom for the fixed footer */}
+            <div className="pt-[100px] pb-[100px] h-full flex">
+                {/* Channel list container with its own scrollbar */}
+                <div className="w-1/5 border-r border-gray-700 overflow-y-auto p-4">
+                    <ChannelList channels={serverChannels} onChannelClick={handleChannelClick} />
+                </div>
+                {/* Main content container for channel content */}
+                <div className="flex-1 overflow-y-auto p-4">
+                    {activeChannel ? (
+                        <ChannelContent channel={activeChannel} onBack={handleBack} />
+                    ) : (
+                        <div className="flex justify-center items-center h-full text-gray-500">
+                            Select a channel to view content
+                        </div>
+                    )}
+                </div>
+            </div>
+            {/* Fixed Footer */}
+            <div className="fixed bottom-0 left-0 right-0">
+                <Footer />
             </div>
         </div>
-        </div>
-    );
+);
 };
 
 export default Dashboard;

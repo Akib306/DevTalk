@@ -1,8 +1,12 @@
 import SearchIcon from '@mui/icons-material/Search';
 import AccountCircleSharpIcon from '@mui/icons-material/AccountCircleSharp';
+import DevTalkLogo from './DevTalkLogo';
+
 export default function Navbar() {
     return (
-        <div className="flex justify-between items-center bg-gray-900 shadow px-4 py-2 border-b border-gray-700">
+        <div className="fixed top-0 left-0 right-0 flex justify-between items-center bg-[#0f172a] px-10
+        py-5 border-b border-gray-700">
+            <DevTalkLogo />
             <form action="" className="relative">
                 <div className="relative">
                     <input type="text"

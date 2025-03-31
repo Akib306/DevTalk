@@ -3,7 +3,6 @@ import LandingPage from "./pages/Landing";
 import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
 import Dashboard from './pages/Dashboard';
-import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -27,7 +26,6 @@ function App() {
             />
           </Routes>
         </div>
-        <Footer />
       </main>
     </>
   )

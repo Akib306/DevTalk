@@ -1,7 +1,7 @@
 import {Navbar, NavbarBrand, NavbarContent, NavbarItem, Button} from "@heroui/react";
 import { useNavigate } from "react-router-dom";
 import logo from "/favicon/favicon.svg";
-
+import Footer from "../components/Footer";
 export default function LandingPage() {
     const navigate = useNavigate();
     return (
@@ -100,6 +100,7 @@ export default function LandingPage() {
                     <img src="/public/favicon/favicon.svg" alt="Meta" className="h-6" />
                 </div>
             </section>
+            <Footer />
 
             
 
