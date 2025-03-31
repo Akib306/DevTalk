@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Form, Input, Button } from "@heroui/react";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [errors, setErrors] = useState({});
 
     const onSubmit = async (e) => {
@@ -35,8 +37,8 @@ export default function Login() {
                 return;
             }
 
-            // On successful login, navigate to /channels
-            await response.json(); // Optionally, process token or other response data
+            const { token } = await response.json();
+            login(token); // Store the token and update auth state
             navigate('/channels');
         } catch (error) {
             setErrors({ global: "An error occurred. Please try again." });

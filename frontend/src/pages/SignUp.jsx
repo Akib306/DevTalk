@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Form, Input, Button } from "@heroui/react";
+import { useAuth } from "../context/AuthContext";
 
 export default function App() {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [password, setPassword] = useState("");
     const [errors, setErrors] = useState({});
 
@@ -65,8 +67,9 @@ export default function App() {
                 }
                 return;
             }
-            // On valid registration, navigate to /channels
-            await response.json(); // Optionally, process token or other response data
+
+            const { token } = await response.json();
+            login(token); // Store the token and update auth state
             navigate('/channels');
         } catch (error) {
             setErrors({ global: "An error occurred. Please try again." });

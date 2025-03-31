@@ -1,9 +1,10 @@
-import { Routes, Route, Links } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import LandingPage from "./pages/Landing";
 import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
 import Channels from './pages/Channels';
 import Footer from "./components/Footer";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -16,7 +17,14 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/channels" element={<Channels />} />
+            <Route 
+              path="/channels" 
+              element={
+                <ProtectedRoute>
+                  <Channels />
+                </ProtectedRoute>
+              } 
+            />
           </Routes>
         </div>
         <Footer />

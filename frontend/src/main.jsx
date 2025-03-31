@@ -4,12 +4,15 @@ import App from './App.jsx'
 import './index.css'
 import {HeroUIProvider} from '@heroui/react'
 import { BrowserRouter } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <HeroUIProvider>
       <BrowserRouter>
-        <App />
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </BrowserRouter>
     </HeroUIProvider>
   </StrictMode>,
