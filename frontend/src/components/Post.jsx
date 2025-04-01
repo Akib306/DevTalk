@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { Card, Button, Textarea } from '@heroui/react';
 import Reply from './Reply';
+import ArrowCircleUpIcon from '@mui/icons-material/ArrowCircleUp';
+import ArrowCircleDownIcon from '@mui/icons-material/ArrowCircleDown';
 
 const Post = ({ post, onReply }) => {
     const [isReplying, setIsReplying] = useState(false);
     const [showReplies, setShowReplies] = useState(true); // Initially show replies
     const [replyContent, setReplyContent] = useState('');
+    const [upvotes, setUpvotes] = useState(post.upvotes || 0);
+    const [downvotes, setDownvotes] = useState(post.downvotes || 0);
+    const [userRating, setUserRating] = useState(post.userRating);
     
     const hasReplies = post.replies && post.replies.length > 0;
     
@@ -16,6 +21,54 @@ const Post = ({ post, onReply }) => {
         setReplyContent('');
         setIsReplying(false);
         setShowReplies(true); // Automatically show replies after posting
+    };
+
+    const handleRate = async (rating) => {
+        try {
+            // If user clicks the same rating again, they're removing their vote
+            const newRating = userRating === rating ? null : rating;
+            
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:3000/api/posts/rate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    post_id: post.id,
+                    rating: newRating
+                })
+            });
+            
+            if (response.ok) {
+                // Update local state based on the vote change
+                if (userRating === 'up' && newRating !== 'up') {
+                    setUpvotes(prev => Math.max(0, prev - 1));
+                }
+                if (userRating === 'down' && newRating !== 'down') {
+                    setDownvotes(prev => Math.max(0, prev - 1));
+                }
+                if (newRating === 'up' && userRating !== 'up') {
+                    setUpvotes(prev => prev + 1);
+                    if (userRating === 'down') {
+                        setDownvotes(prev => Math.max(0, prev - 1));
+                    }
+                }
+                if (newRating === 'down' && userRating !== 'down') {
+                    setDownvotes(prev => prev + 1);
+                    if (userRating === 'up') {
+                        setUpvotes(prev => Math.max(0, prev - 1));
+                    }
+                }
+                
+                setUserRating(newRating);
+            } else {
+                console.error('Error rating post:', await response.json());
+            }
+        } catch (error) {
+            console.error('Error rating post:', error);
+        }
     };
     
     return (
@@ -29,26 +82,57 @@ const Post = ({ post, onReply }) => {
             
             <div className="text-lg mb-4">{post.content}</div>
             
-            <div className="flex gap-2 border-t border-gray-700 pt-3">
-                <Button 
-                    size="sm" 
-                    color="primary" 
-                    variant="ghost"
-                    onPress={() => setIsReplying(!isReplying)}
-                >
-                    Reply
-                </Button>
-                
-                {hasReplies && (
+            <div className="flex items-center justify-between border-t border-gray-700 pt-3">
+                <div className="flex gap-2">
                     <Button 
                         size="sm" 
-                        variant="ghost" 
-                        color="default"
-                        onPress={() => setShowReplies(!showReplies)}
+                        color="primary" 
+                        variant="ghost"
+                        onPress={() => setIsReplying(!isReplying)}
                     >
-                        {showReplies ? `Hide Replies (${post.replies.length})` : `Show Replies (${post.replies.length})`}
+                        Reply
                     </Button>
-                )}
+                    
+                    {hasReplies && (
+                        <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            color="default"
+                            onPress={() => setShowReplies(!showReplies)}
+                        >
+                            {showReplies ? `Hide Replies (${post.replies.length})` : `Show Replies (${post.replies.length})`}
+                        </Button>
+                    )}
+                </div>
+                
+                {/* Voting buttons */}
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1">
+                        <Button 
+                            isIconOnly 
+                            size="sm" 
+                            variant="light" 
+                            onPress={() => handleRate('up')}
+                            className={userRating === 'up' ? 'text-green-500' : 'text-gray-400 hover:text-green-500'}
+                        >
+                            <ArrowCircleUpIcon />
+                        </Button>
+                        <span className="text-sm">{upvotes}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-1">
+                        <Button 
+                            isIconOnly 
+                            size="sm" 
+                            variant="light" 
+                            onPress={() => handleRate('down')}
+                            className={userRating === 'down' ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}
+                        >
+                            <ArrowCircleDownIcon />
+                        </Button>
+                        <span className="text-sm">{downvotes}</span>
+                    </div>
+                </div>
             </div>
             
             {isReplying && (

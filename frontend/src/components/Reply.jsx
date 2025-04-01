@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { Button, Textarea, Card } from '@heroui/react';
+import ArrowCircleUpIcon from '@mui/icons-material/ArrowCircleUp';
+import ArrowCircleDownIcon from '@mui/icons-material/ArrowCircleDown';
 
 const Reply = ({ reply, depth = 0, onReply, postId }) => {
     const [isReplying, setIsReplying] = useState(false);
     const [showReplies, setShowReplies] = useState(false);
     const [replyContent, setReplyContent] = useState('');
+    const [upvotes, setUpvotes] = useState(reply.upvotes || 0);
+    const [downvotes, setDownvotes] = useState(reply.downvotes || 0);
+    const [userRating, setUserRating] = useState(reply.userRating);
     
     const maxDepth = 5; // Maximum visual nesting depth before horizontal scrolling
     const hasReplies = reply.replies && reply.replies.length > 0;
@@ -16,6 +21,54 @@ const Reply = ({ reply, depth = 0, onReply, postId }) => {
         setReplyContent('');
         setIsReplying(false);
         setShowReplies(true); // Automatically show replies after posting
+    };
+    
+    const handleRate = async (rating) => {
+        try {
+            // If user clicks the same rating again, they're removing their vote
+            const newRating = userRating === rating ? null : rating;
+            
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:3000/api/posts/reply/rate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    reply_id: reply.id,
+                    rating: newRating
+                })
+            });
+            
+            if (response.ok) {
+                // Update local state based on the vote change
+                if (userRating === 'up' && newRating !== 'up') {
+                    setUpvotes(prev => Math.max(0, prev - 1));
+                }
+                if (userRating === 'down' && newRating !== 'down') {
+                    setDownvotes(prev => Math.max(0, prev - 1));
+                }
+                if (newRating === 'up' && userRating !== 'up') {
+                    setUpvotes(prev => prev + 1);
+                    if (userRating === 'down') {
+                        setDownvotes(prev => Math.max(0, prev - 1));
+                    }
+                }
+                if (newRating === 'down' && userRating !== 'down') {
+                    setDownvotes(prev => prev + 1);
+                    if (userRating === 'up') {
+                        setUpvotes(prev => Math.max(0, prev - 1));
+                    }
+                }
+                
+                setUserRating(newRating);
+            } else {
+                console.error('Error rating reply:', await response.json());
+            }
+        } catch (error) {
+            console.error('Error rating reply:', error);
+        }
     };
     
     return (
@@ -31,26 +84,57 @@ const Reply = ({ reply, depth = 0, onReply, postId }) => {
                     </div>
                 </div>
                 <div className="my-2">{reply.content}</div>
-                <div className="flex gap-2 mt-2">
-                    <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        color="primary"
-                        onPress={() => setIsReplying(!isReplying)}
-                    >
-                        Reply
-                    </Button>
-                    
-                    {hasReplies && (
+                <div className="flex justify-between items-center mt-2">
+                    <div className="flex gap-2">
                         <Button 
                             size="sm" 
                             variant="ghost" 
-                            color="default"
-                            onPress={() => setShowReplies(!showReplies)}
+                            color="primary"
+                            onPress={() => setIsReplying(!isReplying)}
                         >
-                            {showReplies ? `Hide Replies (${reply.replies.length})` : `Show Replies (${reply.replies.length})`}
+                            Reply
                         </Button>
-                    )}
+                        
+                        {hasReplies && (
+                            <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                color="default"
+                                onPress={() => setShowReplies(!showReplies)}
+                            >
+                                {showReplies ? `Hide Replies (${reply.replies.length})` : `Show Replies (${reply.replies.length})`}
+                            </Button>
+                        )}
+                    </div>
+                    
+                    {/* Voting buttons */}
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
+                            <Button 
+                                isIconOnly 
+                                size="sm" 
+                                variant="light"
+                                onPress={() => handleRate('up')}
+                                className={userRating === 'up' ? 'text-green-500' : 'text-gray-400 hover:text-green-500'}
+                            >
+                                <ArrowCircleUpIcon style={{ fontSize: '1rem' }} />
+                            </Button>
+                            <span className="text-xs">{upvotes}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-1">
+                            <Button 
+                                isIconOnly 
+                                size="sm" 
+                                variant="light"
+                                onPress={() => handleRate('down')}
+                                className={userRating === 'down' ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}
+                            >
+                                <ArrowCircleDownIcon style={{ fontSize: '1rem' }} />
+                            </Button>
+                            <span className="text-xs">{downvotes}</span>
+                        </div>
+                    </div>
                 </div>
                 
                 {isReplying && (

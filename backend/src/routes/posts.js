@@ -1,6 +1,7 @@
 import express from 'express';
 import db from '../db.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
+import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
@@ -31,24 +32,78 @@ router.get('/withReplies', async (req, res) => {
             return res.status(400).json({ message: 'channel_id query parameter is required.' });
         }
 
-        // Get all posts with user information
+        // Get all posts with user information and vote counts
         const [posts] = await db.query(`
-            SELECT p.*, u.username as author_name 
+            SELECT 
+                p.*,
+                u.username as author_name,
+                (SELECT COUNT(*) FROM post_ratings pr WHERE pr.post_id = p.id AND pr.rating = 'up') as upvotes,
+                (SELECT COUNT(*) FROM post_ratings pr WHERE pr.post_id = p.id AND pr.rating = 'down') as downvotes
             FROM posts p
             JOIN users u ON p.user_id = u.id
             WHERE p.channel_id = ?
             ORDER BY p.created_at DESC
         `, [channel_id]);
 
-        // Get all replies with user information
+        // Get all replies with user information and vote counts
         const [replies] = await db.query(`
-            SELECT r.*, u.username as author_name
+            SELECT 
+                r.*,
+                u.username as author_name,
+                (SELECT COUNT(*) FROM reply_ratings rr WHERE rr.reply_id = r.id AND rr.rating = 'up') as upvotes,
+                (SELECT COUNT(*) FROM reply_ratings rr WHERE rr.reply_id = r.id AND rr.rating = 'down') as downvotes
             FROM replies r
             JOIN posts p ON r.post_id = p.id
             JOIN users u ON r.user_id = u.id
             WHERE p.channel_id = ?
             ORDER BY r.created_at ASC
         `, [channel_id]);
+
+        // Get user's ratings if authenticated
+        let userPostRatings = {};
+        let userReplyRatings = {};
+        
+        // Get user's ID from token if available
+        const authHeader = req.headers['authorization'];
+        if (authHeader) {
+            const token = authHeader.split(' ')[1];
+            try {
+                const user = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
+                const userId = user.userId;
+                
+                // Get user's post ratings
+                const [postRatings] = await db.query(`
+                    SELECT post_id, rating FROM post_ratings
+                    WHERE user_id = ?
+                `, [userId]);
+                
+                postRatings.forEach(rating => {
+                    userPostRatings[rating.post_id] = rating.rating;
+                });
+                
+                // Get user's reply ratings
+                const [replyRatings] = await db.query(`
+                    SELECT reply_id, rating FROM reply_ratings
+                    WHERE user_id = ?
+                `, [userId]);
+                
+                replyRatings.forEach(rating => {
+                    userReplyRatings[rating.reply_id] = rating.rating;
+                });
+            } catch (error) {
+                // Token invalid or expired, continue without user ratings
+                console.log('Error getting user ratings:', error.message);
+            }
+        }
+
+        // Attach user's rating to posts and replies
+        posts.forEach(post => {
+            post.userRating = userPostRatings[post.id] || null;
+        });
+        
+        replies.forEach(reply => {
+            reply.userRating = userReplyRatings[reply.id] || null;
+        });
 
         // Organize replies by post_id and parent_reply_id
         const replyMap = {};
@@ -141,12 +196,26 @@ router.post('/rate', authenticateToken, async (req, res) => {
     try {
         const { post_id, rating } = req.body;
         const user_id = req.user.userId;
-        if (!user_id || !post_id || !rating) {
-            return res.status(400).json({ message: 'user_id, post_id, and rating are required.' });
+        
+        if (!post_id) {
+            return res.status(400).json({ message: 'post_id is required.' });
         }
+        
+        // Check if rating is null (user is removing their vote)
+        if (rating === null) {
+            // Delete the rating record
+            await db.query(
+                'DELETE FROM post_ratings WHERE user_id = ? AND post_id = ?',
+                [user_id, post_id]
+            );
+            return res.status(200).json({ message: 'Rating removed successfully.' });
+        }
+        
+        // Otherwise validate and update/insert the rating
         if (rating !== 'up' && rating !== 'down') {
             return res.status(400).json({ message: 'Rating must be either "up" or "down".' });
         }
+        
         const [result] = await db.query(
             `INSERT INTO post_ratings (user_id, post_id, rating)
             VALUES (?, ?, ?)
@@ -165,12 +234,26 @@ router.post('/reply/rate', authenticateToken, async (req, res) => {
     try {
         const { reply_id, rating } = req.body;
         const user_id = req.user.userId;
-        if (!user_id || !reply_id || !rating) {
-            return res.status(400).json({ message: 'user_id, reply_id, and rating are required.' });
+        
+        if (!reply_id) {
+            return res.status(400).json({ message: 'reply_id is required.' });
         }
+        
+        // Check if rating is null (user is removing their vote)
+        if (rating === null) {
+            // Delete the rating record
+            await db.query(
+                'DELETE FROM reply_ratings WHERE user_id = ? AND reply_id = ?',
+                [user_id, reply_id]
+            );
+            return res.status(200).json({ message: 'Rating removed successfully.' });
+        }
+        
+        // Otherwise validate and update/insert the rating
         if (rating !== 'up' && rating !== 'down') {
             return res.status(400).json({ message: 'Rating must be either "up" or "down".' });
         }
+        
         const [result] = await db.query(
             `INSERT INTO reply_ratings (user_id, reply_id, rating)
             VALUES (?, ?, ?)
