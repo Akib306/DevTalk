@@ -81,7 +81,15 @@ const Dashboard = () => {
             
             if (response.ok) {
                 const data = await response.json();
-                const newChannel = { id: data.channel_id, name: channelName };
+                
+                // Get username from localStorage or JWT decode if available
+                const username = localStorage.getItem('username') || 'You';
+
+                const newChannel = { 
+                    id: data.channel_id, 
+                    name: channelName,
+                    creator_name: username // Add creator name
+                };
                 setChannels([...channels, newChannel]);
                 setIsModalOpen(false);
                 setChannelName("");
@@ -114,7 +122,7 @@ const Dashboard = () => {
                     <Button 
                         onPress={() => setIsModalOpen(true)}
                         color="primary" 
-                        size="lg" 
+                        size="md" 
                         variant="shadow"
                     >
                         Create New Channel

@@ -11,10 +11,18 @@ const ChannelList = ({ channels = [], onChannelClick }) => {
                 {channels?.map((channel) => (
                     <li 
                         key={channel.id} 
-                        className="p-2 hover:bg-gray-700 cursor-pointer rounded"
+                        className="p-2 hover:bg-gray-700 cursor-pointer rounded group relative"
                         onClick={() => onChannelClick(channel)}
+                        title={channel.creator_name ? `Created by ${channel.creator_name}` : ''}
                     >
-                        {channel.name}
+                        <div className="flex justify-between items-center">
+                            <span>{channel.name}</span>
+                            {channel.creator_name && (
+                                <span className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    by {channel.creator_name}
+                                </span>
+                            )}
+                        </div>
                     </li>
                 ))}
             </ul>

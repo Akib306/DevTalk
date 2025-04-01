@@ -7,7 +7,11 @@ const router = express.Router();
 // GET /api/channels - Retrieve all channels
 router.get('/', async (req, res) => {
     try {
-        const [channels] = await db.query('SELECT * FROM channels');
+        const [channels] = await db.query(`
+            SELECT c.id, c.name, c.created_by, u.username as creator_name
+            FROM channels c
+            LEFT JOIN users u ON c.created_by = u.id
+        `);
         res.json(channels);
     } catch (error) {
         console.error('Error fetching channels:', error);
