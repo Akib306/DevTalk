@@ -23,6 +23,81 @@ router.get('/', async (req, res) => {
     }
 });
 
+// GET /api/posts/withReplies?channel_id=... - Retrieve posts with user info and all replies for a channel
+router.get('/withReplies', async (req, res) => {
+    try {
+        const { channel_id } = req.query;
+        if (!channel_id) {
+            return res.status(400).json({ message: 'channel_id query parameter is required.' });
+        }
+
+        // Get all posts with user information
+        const [posts] = await db.query(`
+            SELECT p.*, u.username as author_name 
+            FROM posts p
+            JOIN users u ON p.user_id = u.id
+            WHERE p.channel_id = ?
+            ORDER BY p.created_at DESC
+        `, [channel_id]);
+
+        // Get all replies with user information
+        const [replies] = await db.query(`
+            SELECT r.*, u.username as author_name
+            FROM replies r
+            JOIN posts p ON r.post_id = p.id
+            JOIN users u ON r.user_id = u.id
+            WHERE p.channel_id = ?
+            ORDER BY r.created_at ASC
+        `, [channel_id]);
+
+        // Organize replies by post_id and parent_reply_id
+        const replyMap = {};
+        
+        // First, group replies by post_id
+        replies.forEach(reply => {
+            if (!replyMap[reply.post_id]) {
+                replyMap[reply.post_id] = [];
+            }
+            reply.replies = []; // Initialize nested replies array
+            replyMap[reply.post_id].push(reply);
+        });
+        
+        // Build nested reply structure
+        for (const postId in replyMap) {
+            const postReplies = replyMap[postId];
+            const replyById = {};
+            
+            // Create a lookup map of replies by id
+            postReplies.forEach(reply => {
+                replyById[reply.id] = reply;
+            });
+            
+            // Create the nested structure
+            postReplies.forEach(reply => {
+                if (reply.parent_reply_id) {
+                    const parent = replyById[reply.parent_reply_id];
+                    if (parent) {
+                        parent.replies.push(reply);
+                    }
+                }
+            });
+            
+            // Filter to only top-level replies (replies directly to the post)
+            replyMap[postId] = postReplies.filter(reply => !reply.parent_reply_id);
+        }
+        
+        // Attach replies to their posts
+        posts.forEach(post => {
+            post.replies = replyMap[post.id] || [];
+        });
+        
+        res.json(posts);
+    } catch (error) {
+        console.error('Error fetching posts with replies:', error);
+        res.status(500).json({ message: 'Error fetching posts with replies.' });
+    }
+});
+
 // Protected: POST /api/posts - Create a new top-level post
 router.post('/', authenticateToken, async (req, res) => {
     try {
