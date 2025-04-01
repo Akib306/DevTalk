@@ -7,8 +7,8 @@ import db from '../db.js';
 
 const router = express.Router();
 // Generate a secure random secret on server start
-const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
-console.log('New JWT secret generated for this server session');
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+console.log('Using JWT secret:', JWT_SECRET);
 
 router.post('/register', async (req, res) => {
     try {
@@ -64,8 +64,8 @@ router.post('/login', async (req, res) => {
             userId: user.id, 
             username: user.username,
             iat: Date.now(),
-            nonce: crypto.randomBytes(16).toString('hex')
-        }, JWT_SECRET, { expiresIn: '1min' });
+            //nonce: crypto.randomBytes(16).toString('hex')
+        }, JWT_SECRET, { expiresIn: '30min' });
         res.json({ token, message: 'Login successful.' });
     } catch (error) {
         console.error('Error during login:', error);
