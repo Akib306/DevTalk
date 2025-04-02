@@ -153,6 +153,161 @@ router.get('/withReplies', async (req, res) => {
     }
 });
 
+// GET /api/posts/search - Search for posts and replies by content or author
+router.get('/search', async (req, res) => {
+    try {
+        const { query, author } = req.query;
+        
+        if (!query && !author) {
+            return res.status(400).json({ message: 'At least one search parameter (query or author) is required.' });
+        }
+        
+        let matchedPostIds = new Set();
+        let matchedPosts = [];
+        
+        // First, find all post IDs that match the search criteria either directly or through their replies
+        
+        // Check for direct post matches
+        if (query) {
+            const [postMatches] = await db.query(`
+                SELECT DISTINCT p.id
+                FROM posts p
+                JOIN users u ON p.user_id = u.id
+                WHERE p.content LIKE ?
+            `, [`%${query}%`]);
+            
+            postMatches.forEach(post => matchedPostIds.add(post.id));
+            
+            // Check for posts with matching replies
+            const [replyMatches] = await db.query(`
+                SELECT DISTINCT r.post_id
+                FROM replies r
+                JOIN users u ON r.user_id = u.id
+                WHERE r.content LIKE ?
+            `, [`%${query}%`]);
+            
+            replyMatches.forEach(reply => matchedPostIds.add(reply.post_id));
+        }
+        
+        // Check author matches if specified
+        if (author) {
+            const [authorPostMatches] = await db.query(`
+                SELECT DISTINCT p.id
+                FROM posts p
+                JOIN users u ON p.user_id = u.id
+                WHERE u.username LIKE ?
+            `, [`%${author}%`]);
+            
+            authorPostMatches.forEach(post => matchedPostIds.add(post.id));
+            
+            const [authorReplyMatches] = await db.query(`
+                SELECT DISTINCT r.post_id
+                FROM replies r
+                JOIN users u ON r.user_id = u.id
+                WHERE u.username LIKE ?
+            `, [`%${author}%`]);
+            
+            authorReplyMatches.forEach(reply => matchedPostIds.add(reply.post_id));
+        }
+        
+        // Convert Set to Array for query
+        const postIdsArray = Array.from(matchedPostIds);
+        
+        if (postIdsArray.length === 0) {
+            return res.json([]);
+        }
+        
+        // Get complete posts with user info and vote counts
+        const [posts] = await db.query(`
+            SELECT 
+                p.*,
+                u.username as author_name,
+                c.name as channel_name,
+                (SELECT COUNT(*) FROM post_ratings pr WHERE pr.post_id = p.id AND pr.rating = 'up') as upvotes,
+                (SELECT COUNT(*) FROM post_ratings pr WHERE pr.post_id = p.id AND pr.rating = 'down') as downvotes
+            FROM posts p
+            JOIN users u ON p.user_id = u.id
+            JOIN channels c ON p.channel_id = c.id
+            WHERE p.id IN (${postIdsArray.map(() => '?').join(',')})
+            ORDER BY p.created_at DESC
+        `, [...postIdsArray]);
+        
+        // Get all replies for these posts with user info and vote counts
+        const [replies] = await db.query(`
+            SELECT 
+                r.*,
+                u.username as author_name,
+                (SELECT COUNT(*) FROM reply_ratings rr WHERE rr.reply_id = r.id AND rr.rating = 'up') as upvotes,
+                (SELECT COUNT(*) FROM reply_ratings rr WHERE rr.reply_id = r.id AND rr.rating = 'down') as downvotes
+            FROM replies r
+            JOIN users u ON r.user_id = u.id
+            WHERE r.post_id IN (${postIdsArray.map(() => '?').join(',')})
+            ORDER BY r.created_at ASC
+        `, [...postIdsArray]);
+        
+        // Organize replies by post_id and parent_reply_id similar to the withReplies endpoint
+        const replyMap = {};
+        
+        // First, group replies by post_id
+        replies.forEach(reply => {
+            if (!replyMap[reply.post_id]) {
+                replyMap[reply.post_id] = [];
+            }
+            reply.replies = []; // Initialize nested replies array
+            
+            // Highlight matching content if query is provided
+            if (query && reply.content.toLowerCase().includes(query.toLowerCase())) {
+                reply.matches = true;
+            } else {
+                reply.matches = false;
+            }
+            
+            replyMap[reply.post_id].push(reply);
+        });
+        
+        // Build nested reply structure
+        for (const postId in replyMap) {
+            const postReplies = replyMap[postId];
+            const replyById = {};
+            
+            // Create a lookup map of replies by id
+            postReplies.forEach(reply => {
+                replyById[reply.id] = reply;
+            });
+            
+            // Create the nested structure
+            postReplies.forEach(reply => {
+                if (reply.parent_reply_id) {
+                    const parent = replyById[reply.parent_reply_id];
+                    if (parent) {
+                        parent.replies.push(reply);
+                    }
+                }
+            });
+            
+            // Filter to only top-level replies (replies directly to the post)
+            replyMap[postId] = postReplies.filter(reply => !reply.parent_reply_id);
+        }
+        
+        // Attach replies to their posts and mark if post content matches
+        posts.forEach(post => {
+            post.replies = replyMap[post.id] || [];
+            
+            // Highlight matching content if query is provided
+            if (query && post.content.toLowerCase().includes(query.toLowerCase())) {
+                post.matches = true;
+            } else {
+                post.matches = false;
+            }
+        });
+        
+        res.json(posts);
+    } catch (error) {
+        console.error('Error searching posts and replies:', error);
+        res.status(500).json({ message: 'Error searching posts and replies.' });
+    }
+});
+
 // Protected: POST /api/posts - Create a new top-level post
 router.post('/', authenticateToken, async (req, res) => {
     try {
