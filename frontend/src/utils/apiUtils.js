@@ -15,13 +15,20 @@ export const checkTokenValidity = () => {
       // Alert user and redirect to login
       alert('Your session has expired. Please log in again.');
       localStorage.removeItem('token');
-      window.location.href = '/';
+      
+      // Use history API instead of direct location change to work better with React Router
+      if (window.location.pathname !== '/') {
+        window.history.pushState({}, '', '/');
+        // Dispatch an event to tell React Router the URL has changed
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      }
       return false;
     }
     return true;
   } catch (error) {
     console.error('Error checking token validity:', error);
-    localStorage.removeItem('token');
+    // Don't remove token or redirect on parsing errors
+    // This allows the user to stay logged in if there's an issue with the token format
     return false;
   }
 };

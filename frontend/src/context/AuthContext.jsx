@@ -20,20 +20,28 @@ export function AuthProvider({ children }) {
                 if (!payload.exp || payload.exp * 1000 <= Date.now()) {
                     handleTokenExpiration();
                 } else {
-                    // Verify token validity with backend
+                    // Set user immediately based on token to prevent flash of login screen
+                    setUser(payload);
+                    
+                    // Verify token validity with backend asynchronously
                     verifyToken(token)
                         .then(valid => {
-                            if (valid) {
-                                setUser(payload);
-                            } else {
+                            if (!valid) {
                                 handleTokenExpiration();
                             }
                         })
-                        .catch(() => handleTokenExpiration());
+                        .catch(error => {
+                            console.error('Token verification error:', error);
+                            // Only clear if it's a definite authentication error, not network issues
+                            if (error.status === 401 || error.status === 403) {
+                                handleTokenExpiration();
+                            }
+                        });
                 }
             } catch (error) {
                 // If token is invalid, clear it
                 localStorage.removeItem('token');
+                setUser(null);
             }
         }
         setLoading(false);
@@ -51,7 +59,9 @@ export function AuthProvider({ children }) {
             return response.ok;
         } catch (error) {
             console.error('Token verification failed:', error);
-            return false;
+            // Return true on network errors to avoid logging out users unnecessarily
+            // We'll rely on subsequent API calls to verify token if there's connectivity issues
+            return true;
         }
     };
 
