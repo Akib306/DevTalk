@@ -81,13 +81,92 @@ router.post('/login', async (req, res) => {
         const token = jwt.sign({ 
             userId: user.id, 
             username: user.username,
-            exp: Math.floor(Date.now() / 1000) + (2 * 60), // 2 minutes in seconds
+            role: user.role, // Include the user's role
+            exp: Math.floor(Date.now() / 1000) + (20 * 60), // 20 minutes in seconds
         }, JWT_SECRET);
         
         res.json({ token, message: 'Login successful.' });
     } catch (error) {
         console.error('Error during login:', error);
         res.status(500).json({ message: 'Server error during login.' });
+    }
+});
+
+// GET /api/auth/users - Get all registered users (admin only)
+router.get('/users', authenticateToken, async (req, res) => {
+    try {
+        console.log('Users API called with userId:', req.user.userId);
+        
+        // Check if user is admin - SELECT all fields to see the actual data
+        const [users] = await db.query('SELECT * FROM users WHERE id = ?', [req.user.userId]);
+        
+        console.log('User role check result:', users);
+        
+        // More detailed check - treat null, undefined, or any non-admin value as non-admin
+        if (users.length === 0 || !users[0].role || users[0].role !== 'admin') {
+            console.log('Access denied - not admin. User data:', JSON.stringify(users[0]));
+            return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+        }
+        
+        // Fetch all users with more detailed logging
+        console.log('Admin access granted, fetching all users');
+        const [allUsers] = await db.query('SELECT id, username, role FROM users ORDER BY id');
+        
+        console.log('Users found in database:', allUsers.length, allUsers);
+        
+        return res.status(200).json(allUsers);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        return res.status(500).json({ message: 'Server error fetching users.', error: error.message });
+    }
+});
+
+// GET /api/auth/check-admin - Check if current user is admin (for debugging)
+router.get('/check-admin', authenticateToken, async (req, res) => {
+    try {
+        const [users] = await db.query('SELECT id, username, role FROM users WHERE id = ?', [req.user.userId]);
+        
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'User not found.', userId: req.user.userId });
+        }
+        
+        const isAdmin = users[0].role === 'admin';
+        
+        return res.status(200).json({ 
+            userId: req.user.userId,
+            username: users[0].username,
+            role: users[0].role,
+            isAdmin: isAdmin
+        });
+    } catch (error) {
+        console.error('Error checking admin status:', error);
+        return res.status(500).json({ message: 'Server error checking admin status.' });
+    }
+});
+
+// POST /api/auth/fix-admin - Force update the admin user role (development endpoint)
+router.post('/fix-admin', async (req, res) => {
+    try {
+        // Find user with username 'Admin'
+        const [adminUser] = await db.query('SELECT * FROM users WHERE username = ?', ['Admin']);
+        
+        if (adminUser.length === 0) {
+            return res.status(404).json({ message: 'Admin user not found' });
+        }
+        
+        // Update the role to 'admin'
+        await db.query('UPDATE users SET role = ? WHERE username = ?', ['admin', 'Admin']);
+        
+        // Verify the update
+        const [updatedUser] = await db.query('SELECT * FROM users WHERE username = ?', ['Admin']);
+        
+        return res.status(200).json({ 
+            message: 'Admin role updated successfully',
+            user: updatedUser[0]
+        });
+    } catch (error) {
+        console.error('Error fixing admin role:', error);
+        return res.status(500).json({ message: 'Server error fixing admin role', error: error.message });
     }
 });
 

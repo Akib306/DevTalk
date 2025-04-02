@@ -70,6 +70,7 @@ export function AuthProvider({ children }) {
         // Set the new token
         localStorage.setItem('token', token);
         const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log('User payload from token:', payload); // Debug user info
         setUser(payload);
     };
 

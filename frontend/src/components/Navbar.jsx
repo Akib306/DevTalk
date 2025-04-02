@@ -2,7 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import SearchIcon from '@mui/icons-material/Search';
 import AccountCircleSharpIcon from '@mui/icons-material/AccountCircleSharp';
 import DevTalkLogo from './DevTalkLogo';
-import { Modal, ModalContent, ModalHeader, ModalBody, Chip, Card, Avatar, Button, Spinner } from '@heroui/react';
+import { Modal, ModalContent, ModalHeader, ModalBody, Chip, Card, Avatar, Button, Spinner, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@heroui/react';
+import { useAuth } from '../context/AuthContext';
+import { apiRequest } from '../utils/apiUtils';
 
 export default function Navbar() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -13,6 +15,42 @@ export default function Navbar() {
     const [isSearching, setIsSearching] = useState(false);
     const searchRef = useRef(null);
     const filtersRef = useRef(null);
+    const { user } = useAuth();
+
+    // States for users modal
+    const [showUsers, setShowUsers] = useState(false);
+    const [users, setUsers] = useState([]);
+    const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
+    // Check user role on mount
+    useEffect(() => {
+        console.log('Current user in Navbar:', user);
+        // Check admin status from server when user data is available
+        if (user) {
+            checkAdminStatus();
+        }
+    }, [user]);
+
+    // Function to check admin status from server
+    const checkAdminStatus = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:3000/api/auth/check-admin', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Admin status check:', data);
+            } else {
+                console.error('Error checking admin status:', response.status);
+            }
+        } catch (error) {
+            console.error('Error during admin check:', error);
+        }
+    };
 
     // Close filters dropdown when clicking outside
     useEffect(() => {
@@ -97,6 +135,46 @@ export default function Navbar() {
         return text.replace(regex, '<span class="bg-blue-500/30 px-1 rounded">$1</span>');
     };
 
+    // Function to fetch all users
+    const fetchUsers = async () => {
+        setIsLoadingUsers(true);
+        
+        try {
+            console.log('Fetching users...');
+            const response = await apiRequest('http://localhost:3000/api/auth/users');
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Users data received:', data);
+                setUsers(data);
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Error fetching users:', response.status, response.statusText, errorData);
+                
+                // Set a meaningful error message
+                setUsers([]);
+                alert(`Error fetching users: ${errorData.message || response.statusText}`);
+            }
+        } catch (error) {
+            console.error('Error during user fetch:', error);
+            setUsers([]);
+        } finally {
+            setIsLoadingUsers(false);
+        }
+    };
+
+    // Open Users Modal
+    const openUsersModal = () => {
+        setShowUsers(true);
+        fetchUsers();
+    };
+    
+    // Close Users Modal
+    const closeUsersModal = () => {
+        setShowUsers(false);
+        setUsers([]);
+    };
+
     return (
         <div className="fixed top-0 left-0 right-0 flex justify-between items-center bg-[#0f172a] px-10
         py-5 border-b border-gray-700 z-10">
@@ -162,6 +240,16 @@ export default function Navbar() {
                 )}
             </div>
             <div className="flex items-center">
+                {/* Admin-only View All Users button */}
+                {user && user.role === 'admin' && (
+                    <Button 
+                        color="primary"
+                        className="mr-4"
+                        onClick={openUsersModal}
+                    >
+                        View All Users
+                    </Button>
+                )}
                 <AccountCircleSharpIcon className="text-gray-400 size-20 cursor-pointer hover:text-blue-500 transform hover:scale-150 transition-all" />
             </div>
             
@@ -236,6 +324,50 @@ export default function Navbar() {
                                                     </div>
                                                 )}
                                             </div>
+                                        </div>
+                                    </Card>
+                                ))}
+                            </div>
+                        )}
+                    </ModalBody>
+                </ModalContent>
+            </Modal>
+            
+            {/* Users Modal */}
+            <Modal isOpen={showUsers} onClose={closeUsersModal} size="3xl" backdrop="blur">
+                <ModalContent className="bg-[#0f172a] border border-gray-700 text-white">
+                    <ModalHeader className="border-b border-gray-700">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-xl mr-5 font-semibold text-white">All Registered Users</h3>
+                        </div>
+                    </ModalHeader>
+                    <ModalBody className="max-h-[70vh] overflow-y-auto">
+                        {isLoadingUsers ? (
+                            <div className="flex justify-center py-12">
+                                <Spinner size="lg" />
+                            </div>
+                        ) : users.length === 0 ? (
+                            <div className="text-center py-12 text-gray-400">
+                                No users found
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {users.map(user => (
+                                    <Card key={user.id} className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 p-4">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-gray-400 text-sm">{user.id}</div>
+                                                <div className="flex items-center gap-2">
+                                                    <Avatar name={user.username} size="sm" />
+                                                    <span className="text-blue-400 font-medium">{user.username}</span>
+                                                </div>
+                                            </div>
+                                            <Chip 
+                                                color={user.role === 'admin' ? 'primary' : 'default'} 
+                                                size="sm"
+                                            >
+                                                {user.role || 'user'}
+                                            </Chip>
                                         </div>
                                     </Card>
                                 ))}
