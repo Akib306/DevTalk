@@ -1,6 +1,6 @@
 import express from 'express';
 import { connectAndPing } from './db.js';
-import { initializeSchema } from './initDb.js';
+import { initializeSchema, createAdminAccount } from './initDb.js';
 import authRoutes from './routes/auth.js';
 import channelsRoutes from './routes/channels.js';
 import postsRoutes from './routes/posts.js';
@@ -24,6 +24,7 @@ async function startServer() {
     try {
         await connectAndPing();           // Check DB connection
         await initializeSchema();         // Set up DB tables
+        await createAdminAccount();       // Create admin account if it doesn't exist
 
         app.listen(port, () => {
             console.log(`Server is live on http://localhost:${port}`);

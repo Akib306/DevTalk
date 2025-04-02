@@ -1,4 +1,5 @@
 import db from './db.js';
+import bcrypt from 'bcrypt';
 
 export async function initializeSchema() {
     try {
@@ -82,5 +83,32 @@ export async function initializeSchema() {
     } catch (error) {
         console.error('Error initializing schema: ', error.message);
         process.exit(1);
+    }
+}
+
+export async function createAdminAccount() {
+    try {
+        const adminUsername = 'Admin';
+        const adminPassword = 'pass';
+        
+        // Check if admin account already exists
+        const [existingAdmin] = await db.query('SELECT id FROM users WHERE username = ?', [adminUsername]);
+        
+        if (existingAdmin.length === 0) {
+            // Hash the password
+            const hashedPassword = await bcrypt.hash(adminPassword, 10);
+            
+            // Create admin account
+            await db.query(
+                'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+                [adminUsername, hashedPassword, 'admin']
+            );
+            
+            console.log('Admin account created successfully');
+        } else {
+            console.log('Admin account already exists');
+        }
+    } catch (error) {
+        console.error('Error creating admin account:', error.message);
     }
 }
