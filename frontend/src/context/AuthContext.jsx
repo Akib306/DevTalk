@@ -58,7 +58,8 @@ export function AuthProvider({ children }) {
     const handleTokenExpiration = () => {
         localStorage.removeItem('token');
         setUser(null);
-        // Remove alert for better UX
+        // Show alert for expired session
+        alert('Your session has expired. Please log in again.');
         navigate('/');
     };
 

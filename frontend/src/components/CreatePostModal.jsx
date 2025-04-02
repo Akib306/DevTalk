@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Textarea, Form } from '@heroui/react';
+import { apiRequest } from '../utils/apiUtils';
 
 const CreatePostModal = ({ isOpen, onClose, channelId, onPostCreated }) => {
     const [content, setContent] = useState('');
@@ -27,12 +28,10 @@ const CreatePostModal = ({ isOpen, onClose, channelId, onPostCreated }) => {
         
         try {
             setIsLoading(true);
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/posts', {
+            const response = await apiRequest('http://localhost:3000/api/posts', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ 
                     channel_id: channelId,

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@heroui/react';
 import CreatePostModal from './CreatePostModal';
 import Post from './Post';
+import { apiRequest } from '../utils/apiUtils';
 
 const ChannelContent = ({ channel, onBack }) => {
     const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
@@ -20,12 +21,7 @@ const ChannelContent = ({ channel, onBack }) => {
             setIsLoading(true);
             setError(null);
             
-            const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3000/api/posts/withReplies?channel_id=${channel.id}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await apiRequest(`http://localhost:3000/api/posts/withReplies?channel_id=${channel.id}`);
             
             if (response.ok) {
                 const data = await response.json();
@@ -44,12 +40,10 @@ const ChannelContent = ({ channel, onBack }) => {
 
     const handleReply = async (postId, parentReplyId, content) => {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/posts/reply', {
+            const response = await apiRequest('http://localhost:3000/api/posts/reply', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     post_id: postId,

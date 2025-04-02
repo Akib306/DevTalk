@@ -4,6 +4,7 @@ import ChannelList from '../components/ChannelList';
 import ChannelContent from '../components/ChannelContent';
 import { Button, Form, Input, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@heroui/react';
 import Footer from '../components/Footer';
+import { apiRequest } from '../utils/apiUtils';
 
 const Dashboard = () => {
     const [activeChannel, setActiveChannel] = useState(null);
@@ -21,18 +22,13 @@ const Dashboard = () => {
     const fetchChannels = async () => {
         try {
             setIsLoading(true);
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/channels', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const response = await apiRequest('http://localhost:3000/api/channels');
             
             if (response.ok) {
                 const data = await response.json();
                 setChannels(data);
             } else {
-                console.error('Failed to fetch channels');
+                console.error('Error fetching channels:', await response.json());
             }
         } catch (error) {
             console.error('Error fetching channels:', error);
@@ -69,12 +65,10 @@ const Dashboard = () => {
         }
         
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/api/channels', {
+            const response = await apiRequest('http://localhost:3000/api/channels', {
                 method: 'POST',
                 headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ name: channelName })
             });
