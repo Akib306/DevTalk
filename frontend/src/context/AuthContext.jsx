@@ -15,11 +15,21 @@ export function AuthProvider({ children }) {
             try {
                 // Decode the token to get user info
                 const payload = JSON.parse(atob(token.split('.')[1]));
-                setUser(payload);
                 
                 // Check if token is expired
-                if (payload.exp * 1000 <= Date.now()) {
+                if (!payload.exp || payload.exp * 1000 <= Date.now()) {
                     handleTokenExpiration();
+                } else {
+                    // Verify token validity with backend
+                    verifyToken(token)
+                        .then(valid => {
+                            if (valid) {
+                                setUser(payload);
+                            } else {
+                                handleTokenExpiration();
+                            }
+                        })
+                        .catch(() => handleTokenExpiration());
                 }
             } catch (error) {
                 // If token is invalid, clear it
@@ -29,13 +39,27 @@ export function AuthProvider({ children }) {
         setLoading(false);
     }, []);
 
+    // Add token verification with backend
+    const verifyToken = async (token) => {
+        try {
+            const response = await fetch('http://localhost:3000/api/auth/verify', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            return response.ok;
+        } catch (error) {
+            console.error('Token verification failed:', error);
+            return false;
+        }
+    };
+
     const handleTokenExpiration = () => {
         localStorage.removeItem('token');
         setUser(null);
-        alert('Your session has expired. Please login again.');
-        setTimeout(() => {
-            navigate('/');
-        }, 3000);
+        // Remove alert for better UX
+        navigate('/');
     };
 
     const login = (token) => {
@@ -62,7 +86,7 @@ export function AuthProvider({ children }) {
         if (!token) return false;
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));
-            if (payload.exp * 1000 <= Date.now()) {
+            if (!payload.exp || payload.exp * 1000 <= Date.now()) {
                 handleTokenExpiration();
                 return false;
             }

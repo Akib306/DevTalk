@@ -4,11 +4,28 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import db from '../db.js';
+import { authenticateToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 // Generate a secure random secret on server start
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 console.log('Using JWT secret:', JWT_SECRET);
+
+// Add a verify token endpoint
+router.get('/verify', authenticateToken, async (req, res) => {
+    try {
+        // If middleware passes, token is valid
+        // Check if user still exists in database
+        const [users] = await db.query('SELECT id FROM users WHERE id = ?', [req.user.userId]);
+        if (users.length === 0) {
+            return res.status(401).json({ message: 'User no longer exists.' });
+        }
+        return res.status(200).json({ valid: true });
+    } catch (error) {
+        console.error('Error during token verification:', error);
+        return res.status(500).json({ message: 'Server error during verification.' });
+    }
+});
 
 router.post('/register', async (req, res) => {
     try {
@@ -59,13 +76,14 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials.' });
         }
 
-        // Create a JWT token for the user
+        // Create a JWT token for the user with proper expiration
+        const expiresIn = '15min'; // Short expiration time
         const token = jwt.sign({ 
             userId: user.id, 
             username: user.username,
-            iat: Date.now(),
-            //nonce: crypto.randomBytes(16).toString('hex')
-        }, JWT_SECRET, { expiresIn: '30min' });
+            exp: Math.floor(Date.now() / 1000) + (2 * 60), // 2 minutes in seconds
+        }, JWT_SECRET);
+        
         res.json({ token, message: 'Login successful.' });
     } catch (error) {
         console.error('Error during login:', error);
