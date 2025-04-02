@@ -14,6 +14,22 @@ const ChannelContent = ({ channel, onBack }) => {
         if (channel && channel.id) {
             fetchPosts();
         }
+        
+        // Add event listener for user deletion
+        const handleUserDeleted = () => {
+            console.log('User deleted event detected in ChannelContent, refreshing posts');
+            if (channel && channel.id) {
+                fetchPosts();
+            }
+        };
+        
+        // Add event listener
+        window.addEventListener('userDeleted', handleUserDeleted);
+        
+        // Clean up event listener
+        return () => {
+            window.removeEventListener('userDeleted', handleUserDeleted);
+        };
     }, [channel]);
 
     const fetchPosts = async () => {

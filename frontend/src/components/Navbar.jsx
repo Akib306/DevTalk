@@ -21,6 +21,7 @@ export default function Navbar() {
     const [showUsers, setShowUsers] = useState(false);
     const [users, setUsers] = useState([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+    const [isDeleting, setIsDeleting] = useState({});
 
     // Check user role on mount
     useEffect(() => {
@@ -173,6 +174,43 @@ export default function Navbar() {
     const closeUsersModal = () => {
         setShowUsers(false);
         setUsers([]);
+    };
+
+    // Handle user deletion
+    const handleDeleteUser = async (userId, username) => {
+        // Confirm deletion
+        if (!window.confirm(`Are you sure you want to delete user "${username}" and ALL their content? This action cannot be undone.`)) {
+            return;
+        }
+        
+        setIsDeleting(prev => ({ ...prev, [userId]: true }));
+        
+        try {
+            const response = await apiRequest(`http://localhost:3000/api/auth/users/${userId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                // Remove user from the list
+                setUsers(prev => prev.filter(user => user.id !== userId));
+                alert(`User "${username}" deleted successfully.`);
+                
+                // Dispatch a custom event to notify other components (like Dashboard) to refresh
+                const refreshEvent = new CustomEvent('userDeleted', { 
+                    detail: { userId, username } 
+                });
+                window.dispatchEvent(refreshEvent);
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Error deleting user:', response.status, response.statusText, errorData);
+                alert(`Error deleting user: ${errorData.message || response.statusText}`);
+            }
+        } catch (error) {
+            console.error('Error during user deletion:', error);
+            alert(`Failed to delete user: ${error.message}`);
+        } finally {
+            setIsDeleting(prev => ({ ...prev, [userId]: false }));
+        }
     };
 
     return (
@@ -362,12 +400,24 @@ export default function Navbar() {
                                                     <span className="text-blue-400 font-medium">{user.username}</span>
                                                 </div>
                                             </div>
-                                            <Chip 
-                                                color={user.role === 'admin' ? 'primary' : 'default'} 
-                                                size="sm"
-                                            >
-                                                {user.role || 'user'}
-                                            </Chip>
+                                            <div className="flex items-center gap-2">
+                                                <Chip 
+                                                    color={user.role === 'admin' ? 'primary' : 'default'} 
+                                                    size="sm"
+                                                >
+                                                    {user.role || 'user'}
+                                                </Chip>
+                                                {user.role !== 'admin' && (
+                                                    <Button
+                                                        color="danger"
+                                                        size="sm"
+                                                        isLoading={isDeleting[user.id]}
+                                                        onClick={() => handleDeleteUser(user.id, user.username)}
+                                                    >
+                                                        Delete User
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </div>
                                     </Card>
                                 ))}

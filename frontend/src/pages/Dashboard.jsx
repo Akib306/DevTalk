@@ -17,7 +17,26 @@ const Dashboard = () => {
     // Fetch channels on component mount
     useEffect(() => {
         fetchChannels();
-    }, []);
+        
+        // Add event listener for user deletion
+        const handleUserDeleted = () => {
+            console.log('User deleted event detected, refreshing channels');
+            fetchChannels();
+            
+            // If we have an active channel and its content might have changed, reset it
+            if (activeChannel) {
+                setActiveChannel(null);
+            }
+        };
+        
+        // Add event listener
+        window.addEventListener('userDeleted', handleUserDeleted);
+        
+        // Clean up event listener
+        return () => {
+            window.removeEventListener('userDeleted', handleUserDeleted);
+        };
+    }, [activeChannel]);
 
     const fetchChannels = async () => {
         try {

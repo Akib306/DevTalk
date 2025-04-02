@@ -170,4 +170,123 @@ router.post('/fix-admin', async (req, res) => {
     }
 });
 
+// DELETE /api/auth/users/:id - Delete a user with all their content (admin only)
+router.delete('/users/:id', authenticateToken, async (req, res) => {
+    try {
+        // Check if user is admin
+        const [users] = await db.query('SELECT * FROM users WHERE id = ?', [req.user.userId]);
+        
+        if (users.length === 0 || !users[0].role || users[0].role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+        }
+        
+        const userId = req.params.id;
+        
+        // Start a transaction to ensure all deletes succeed or fail together
+        await db.query('START TRANSACTION');
+        
+        try {
+            // 1. First, get all posts by this user for later reference
+            const [userPosts] = await db.query('SELECT id FROM posts WHERE user_id = ?', [userId]);
+            const postIds = userPosts.map(post => post.id);
+            
+            // 2. Delete all ratings of any replies associated with user's posts
+            if (postIds.length > 0) {
+                // Get all replies associated with user's posts
+                const [postReplies] = await db.query(
+                    `SELECT id FROM replies WHERE post_id IN (${postIds.map(() => '?').join(',')})`,
+                    [...postIds]
+                );
+                const replyIds = postReplies.map(reply => reply.id);
+                
+                // Delete ratings for these replies
+                if (replyIds.length > 0) {
+                    await db.query(
+                        `DELETE FROM reply_ratings WHERE reply_id IN (${replyIds.map(() => '?').join(',')})`,
+                        [...replyIds]
+                    );
+                }
+            }
+            
+            // 3. Delete all ratings made by the user
+            await db.query('DELETE FROM reply_ratings WHERE user_id = ?', [userId]);
+            await db.query('DELETE FROM post_ratings WHERE user_id = ?', [userId]);
+            
+            // 4. Delete all ratings of posts created by the user
+            if (postIds.length > 0) {
+                await db.query(
+                    `DELETE FROM post_ratings WHERE post_id IN (${postIds.map(() => '?').join(',')})`,
+                    [...postIds]
+                );
+            }
+            
+            // 5. Delete all replies by the user or to the user's posts (recursive function)
+            await deleteRepliesByUser(userId);
+            
+            // 6. Delete all replies to posts made by the user
+            if (postIds.length > 0) {
+                await db.query(
+                    `DELETE FROM replies WHERE post_id IN (${postIds.map(() => '?').join(',')})`,
+                    [...postIds]
+                );
+            }
+            
+            // 7. Delete all posts by the user
+            await db.query('DELETE FROM posts WHERE user_id = ?', [userId]);
+            
+            // 8. Delete all channels created by the user
+            await db.query('DELETE FROM channels WHERE created_by = ?', [userId]);
+            
+            // 9. Finally, delete the user
+            const [result] = await db.query('DELETE FROM users WHERE id = ?', [userId]);
+            
+            if (result.affectedRows === 0) {
+                await db.query('ROLLBACK');
+                return res.status(404).json({ message: 'User not found.' });
+            }
+            
+            await db.query('COMMIT');
+            
+            return res.status(200).json({ message: 'User and all associated content deleted successfully.' });
+        } catch (error) {
+            await db.query('ROLLBACK');
+            throw error; // Re-throw to be caught by outer catch
+        }
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        return res.status(500).json({ message: 'Server error deleting user.', error: error.message });
+    }
+});
+
+// Helper function to recursively delete replies
+async function deleteRepliesByUser(userId) {
+    // First, identify all replies by this user
+    const [userReplies] = await db.query('SELECT id FROM replies WHERE user_id = ?', [userId]);
+    
+    // For each reply, recursively delete child replies
+    for (const reply of userReplies) {
+        await deleteChildReplies(reply.id);
+    }
+    
+    // Finally delete all replies by this user
+    await db.query('DELETE FROM replies WHERE user_id = ?', [userId]);
+}
+
+// Helper function to recursively delete a reply and all its children
+async function deleteChildReplies(replyId) {
+    // Find all direct child replies
+    const [childReplies] = await db.query('SELECT id FROM replies WHERE parent_reply_id = ?', [replyId]);
+    
+    // Recursively delete each child's children
+    for (const child of childReplies) {
+        await deleteChildReplies(child.id);
+    }
+    
+    // Delete ratings for this reply
+    await db.query('DELETE FROM reply_ratings WHERE reply_id = ?', [replyId]);
+    
+    // Delete the reply itself
+    await db.query('DELETE FROM replies WHERE id = ?', [replyId]);
+}
+
 export default router;
