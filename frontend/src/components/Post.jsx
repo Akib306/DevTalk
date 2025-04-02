@@ -3,14 +3,19 @@ import { Card, Button, Textarea } from '@heroui/react';
 import Reply from './Reply';
 import ArrowCircleUpIcon from '@mui/icons-material/ArrowCircleUp';
 import ArrowCircleDownIcon from '@mui/icons-material/ArrowCircleDown';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { useAuth } from '../context/AuthContext';
+import { apiRequest } from '../utils/apiUtils';
 
-const Post = ({ post, onReply }) => {
+const Post = ({ post, onReply, onPostDeleted }) => {
     const [isReplying, setIsReplying] = useState(false);
     const [showReplies, setShowReplies] = useState(true); // Initially show replies
     const [replyContent, setReplyContent] = useState('');
     const [upvotes, setUpvotes] = useState(post.upvotes || 0);
     const [downvotes, setDownvotes] = useState(post.downvotes || 0);
     const [userRating, setUserRating] = useState(post.userRating);
+    const { user } = useAuth();
+    const isAdmin = user && user.role === 'admin';
     
     const hasReplies = post.replies && post.replies.length > 0;
     
@@ -21,6 +26,29 @@ const Post = ({ post, onReply }) => {
         setReplyContent('');
         setIsReplying(false);
         setShowReplies(true); // Automatically show replies after posting
+    };
+
+    const handleDeletePost = async () => {
+        if (confirm('Are you sure you want to delete this post and all its replies? This action cannot be undone.')) {
+            try {
+                const response = await apiRequest(`http://localhost:3000/api/posts/${post.id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    // Notify parent component to refresh posts
+                    if (onPostDeleted) {
+                        onPostDeleted();
+                    }
+                } else {
+                    console.error('Failed to delete post:', await response.json());
+                    alert('Failed to delete post. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error deleting post:', error);
+                alert('An error occurred while deleting the post.');
+            }
+        }
     };
 
     const handleRate = async (rating) => {
@@ -75,8 +103,21 @@ const Post = ({ post, onReply }) => {
         <Card className="mb-6 p-4 border border-gray-700 bg-gray-800/50">
             <div className="flex justify-between mb-2">
                 <div className="font-semibold text-blue-400">{post.author_name}</div>
-                <div className="text-xs text-gray-400">
-                    {new Date(post.created_at).toLocaleString()}
+                <div className="flex items-center gap-2">
+                    <div className="text-xs text-gray-400">
+                        {new Date(post.created_at).toLocaleString()}
+                    </div>
+                    {isAdmin && (
+                        <Button
+                            isIconOnly
+                            size="sm"
+                            color="danger"
+                            variant="ghost"
+                            onClick={handleDeletePost}
+                        >
+                            <DeleteIcon />
+                        </Button>
+                    )}
                 </div>
             </div>
             
@@ -178,6 +219,8 @@ const Post = ({ post, onReply }) => {
                             reply={reply} 
                             onReply={onReply}
                             postId={post.id}
+                            onReplyDeleted={onPostDeleted}
+                            isAdmin={isAdmin}
                         />
                     ))}
                 </div>

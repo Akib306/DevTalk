@@ -124,6 +124,7 @@ const ChannelContent = ({ channel, onBack }) => {
                                 key={post.id} 
                                 post={post} 
                                 onReply={handleReply}
+                                onPostDeleted={fetchPosts}
                             />
                         ))}
                     </div>

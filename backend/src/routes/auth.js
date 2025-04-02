@@ -82,7 +82,7 @@ router.post('/login', async (req, res) => {
             userId: user.id, 
             username: user.username,
             role: user.role, // Include the user's role
-            exp: Math.floor(Date.now() / 1000) + (2 * 60), // 20 minutes in seconds
+            exp: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minutes in seconds
         }, JWT_SECRET);
         
         res.json({ token, message: 'Login successful.' });

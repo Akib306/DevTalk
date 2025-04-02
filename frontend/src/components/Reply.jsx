@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Button, Textarea, Card } from '@heroui/react';
 import ArrowCircleUpIcon from '@mui/icons-material/ArrowCircleUp';
 import ArrowCircleDownIcon from '@mui/icons-material/ArrowCircleDown';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { apiRequest } from '../utils/apiUtils';
 
-const Reply = ({ reply, depth = 0, onReply, postId }) => {
+const Reply = ({ reply, depth = 0, onReply, postId, onReplyDeleted, isAdmin }) => {
     const [isReplying, setIsReplying] = useState(false);
     const [showReplies, setShowReplies] = useState(false);
     const [replyContent, setReplyContent] = useState('');
@@ -21,6 +23,29 @@ const Reply = ({ reply, depth = 0, onReply, postId }) => {
         setReplyContent('');
         setIsReplying(false);
         setShowReplies(true); // Automatically show replies after posting
+    };
+    
+    const handleDeleteReply = async () => {
+        if (confirm('Are you sure you want to delete this reply and all its nested replies? This action cannot be undone.')) {
+            try {
+                const response = await apiRequest(`http://localhost:3000/api/posts/reply/${reply.id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    // Notify parent component to refresh posts
+                    if (onReplyDeleted) {
+                        onReplyDeleted();
+                    }
+                } else {
+                    console.error('Failed to delete reply:', await response.json());
+                    alert('Failed to delete reply. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error deleting reply:', error);
+                alert('An error occurred while deleting the reply.');
+            }
+        }
     };
     
     const handleRate = async (rating) => {
@@ -79,8 +104,21 @@ const Reply = ({ reply, depth = 0, onReply, postId }) => {
             >
                 <div className="flex justify-between">
                     <div className="font-medium text-sm text-blue-400">{reply.author_name}</div>
-                    <div className="text-xs text-gray-400">
-                        {new Date(reply.created_at).toLocaleString()}
+                    <div className="flex items-center gap-2">
+                        <div className="text-xs text-gray-400">
+                            {new Date(reply.created_at).toLocaleString()}
+                        </div>
+                        {isAdmin && (
+                            <Button
+                                isIconOnly
+                                size="sm"
+                                color="danger"
+                                variant="ghost"
+                                onClick={handleDeleteReply}
+                            >
+                                <DeleteIcon style={{ fontSize: '1rem' }} />
+                            </Button>
+                        )}
                     </div>
                 </div>
                 <div className="my-2">{reply.content}</div>
@@ -183,6 +221,8 @@ const Reply = ({ reply, depth = 0, onReply, postId }) => {
                             depth={depth + 1}
                             onReply={onReply}
                             postId={postId}
+                            onReplyDeleted={onReplyDeleted}
+                            isAdmin={isAdmin}
                         />
                     ))}
                 </div>

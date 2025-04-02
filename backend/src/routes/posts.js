@@ -422,4 +422,104 @@ router.post('/reply/rate', authenticateToken, async (req, res) => {
     }
 });
 
+// Helper function to recursively delete replies
+async function deleteChildReplies(replyId) {
+    // Get all child replies
+    const [childReplies] = await db.query('SELECT id FROM replies WHERE parent_reply_id = ?', [replyId]);
+    
+    // Recursively delete each child's children
+    for (const child of childReplies) {
+        await deleteChildReplies(child.id);
+    }
+    
+    // Delete ratings for this reply
+    await db.query('DELETE FROM reply_ratings WHERE reply_id = ?', [replyId]);
+    
+    // Delete the reply itself
+    await db.query('DELETE FROM replies WHERE id = ?', [replyId]);
+}
+
+// DELETE /api/posts/:id - Delete a post with all its replies (admin only)
+router.delete('/:id', authenticateToken, async (req, res) => {
+    try {
+        const postId = req.params.id;
+        
+        // Check if user is admin
+        const [users] = await db.query('SELECT * FROM users WHERE id = ?', [req.user.userId]);
+        
+        if (users.length === 0 || !users[0].role || users[0].role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+        }
+        
+        // Start a transaction to ensure all deletes succeed or fail together
+        await db.query('START TRANSACTION');
+        
+        try {
+            // First, get all replies for this post
+            const [replies] = await db.query('SELECT id FROM replies WHERE post_id = ?', [postId]);
+            
+            // Delete all ratings for each reply
+            for (const reply of replies) {
+                await db.query('DELETE FROM reply_ratings WHERE reply_id = ?', [reply.id]);
+            }
+            
+            // Delete all replies for this post
+            await db.query('DELETE FROM replies WHERE post_id = ?', [postId]);
+            
+            // Delete all ratings for this post
+            await db.query('DELETE FROM post_ratings WHERE post_id = ?', [postId]);
+            
+            // Finally, delete the post
+            const [result] = await db.query('DELETE FROM posts WHERE id = ?', [postId]);
+            
+            if (result.affectedRows === 0) {
+                await db.query('ROLLBACK');
+                return res.status(404).json({ message: 'Post not found.' });
+            }
+            
+            await db.query('COMMIT');
+            
+            return res.status(200).json({ message: 'Post and all its replies deleted successfully.' });
+        } catch (error) {
+            await db.query('ROLLBACK');
+            throw error; // Re-throw to be caught by outer catch
+        }
+    } catch (error) {
+        console.error('Error deleting post:', error);
+        return res.status(500).json({ message: 'Server error deleting post.', error: error.message });
+    }
+});
+
+// DELETE /api/posts/reply/:id - Delete a reply and all its nested replies (admin only)
+router.delete('/reply/:id', authenticateToken, async (req, res) => {
+    try {
+        const replyId = req.params.id;
+        
+        // Check if user is admin
+        const [users] = await db.query('SELECT * FROM users WHERE id = ?', [req.user.userId]);
+        
+        if (users.length === 0 || !users[0].role || users[0].role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+        }
+        
+        // Start a transaction to ensure all deletes succeed or fail together
+        await db.query('START TRANSACTION');
+        
+        try {
+            // Delete this reply and all its children recursively
+            await deleteChildReplies(replyId);
+            
+            await db.query('COMMIT');
+            
+            return res.status(200).json({ message: 'Reply and all its nested replies deleted successfully.' });
+        } catch (error) {
+            await db.query('ROLLBACK');
+            throw error; // Re-throw to be caught by outer catch
+        }
+    } catch (error) {
+        console.error('Error deleting reply:', error);
+        return res.status(500).json({ message: 'Server error deleting reply.', error: error.message });
+    }
+});
+
 export default router;

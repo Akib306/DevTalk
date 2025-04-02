@@ -46,6 +46,14 @@ const Dashboard = () => {
             if (response.ok) {
                 const data = await response.json();
                 setChannels(data);
+                
+                // Check if the active channel still exists in the updated list
+                if (activeChannel) {
+                    const channelStillExists = data.some(channel => channel.id === activeChannel.id);
+                    if (!channelStillExists) {
+                        setActiveChannel(null);
+                    }
+                }
             } else {
                 console.error('Error fetching channels:', await response.json());
             }
@@ -124,6 +132,15 @@ const Dashboard = () => {
         setErrors({});
     };
 
+    const handleChannelDeleted = (deletedChannelId) => {
+        // If the deleted channel is the active channel, reset it
+        if (activeChannel && activeChannel.id === deletedChannelId) {
+            setActiveChannel(null);
+        }
+        // Refresh the channel list
+        fetchChannels();
+    };
+
     return (
         <div className="relative h-screen">
             <Navbar />
@@ -144,7 +161,12 @@ const Dashboard = () => {
                     {isLoading ? (
                         <p>Loading channels...</p>
                     ) : (
-                        <ChannelList channels={channels} onChannelClick={handleChannelClick} />
+                        <ChannelList 
+                            channels={channels} 
+                            onChannelClick={handleChannelClick} 
+                            onChannelDeleted={handleChannelDeleted}
+                            activeChannel={activeChannel}
+                        />
                     )}
                     
                 </div>
