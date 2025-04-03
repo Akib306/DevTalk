@@ -3,6 +3,7 @@ import db from '../db.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 import jwt from 'jsonwebtoken';
 import { saveImage, validateImageSize, deleteImage } from '../utils/imageUtils.js';
+import { getCurrentTimestamp } from '../utils/dateUtils.js';
 
 const router = express.Router();
 
@@ -336,9 +337,12 @@ router.post('/', authenticateToken, async (req, res) => {
             }
         }
         
+        // Use getCurrentTimestamp() to get the correct timezone timestamp
+        const created_at = getCurrentTimestamp();
+        
         const [result] = await db.query(
-            'INSERT INTO posts (channel_id, user_id, content, image_url) VALUES (?, ?, ?, ?)',
-            [channel_id, user_id, content, image_url]
+            'INSERT INTO posts (channel_id, user_id, content, image_url, created_at) VALUES (?, ?, ?, ?, ?)',
+            [channel_id, user_id, content, image_url, created_at]
         );
         
         res.status(201).json({ 
@@ -379,9 +383,12 @@ router.post('/reply', authenticateToken, async (req, res) => {
             }
         }
         
+        // Use getCurrentTimestamp() to get the correct timezone timestamp
+        const created_at = getCurrentTimestamp();
+        
         const [result] = await db.query(
-            'INSERT INTO replies (post_id, parent_reply_id, user_id, content, image_url) VALUES (?, ?, ?, ?, ?)',
-            [post_id, parent_reply_id || null, user_id, content, image_url]
+            'INSERT INTO replies (post_id, parent_reply_id, user_id, content, image_url, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+            [post_id, parent_reply_id || null, user_id, content, image_url, created_at]
         );
         
         res.status(201).json({ 

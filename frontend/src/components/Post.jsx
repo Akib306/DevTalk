@@ -7,6 +7,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ImageIcon from '@mui/icons-material/Image';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/apiUtils';
+import { formatDate } from '../utils/dateUtils';
 
 const Post = ({ post, onReply, onPostDeleted }) => {
     const [isReplying, setIsReplying] = useState(false);
@@ -160,7 +161,7 @@ const Post = ({ post, onReply, onPostDeleted }) => {
                 <div className="font-semibold text-blue-400">{post.author_name}</div>
                 <div className="flex items-center gap-2">
                     <div className="text-xs text-gray-400">
-                        {new Date(post.created_at).toLocaleString()}
+                        {formatDate(post.created_at)}
                     </div>
                     {isAdmin && (
                         <Button

@@ -5,6 +5,7 @@ import ArrowCircleDownIcon from '@mui/icons-material/ArrowCircleDown';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ImageIcon from '@mui/icons-material/Image';
 import { apiRequest } from '../utils/apiUtils';
+import { formatDate } from '../utils/dateUtils';
 
 const Reply = ({ reply, depth = 0, onReply, postId, onReplyDeleted, isAdmin }) => {
     const [isReplying, setIsReplying] = useState(false);
@@ -150,7 +151,7 @@ const Reply = ({ reply, depth = 0, onReply, postId, onReplyDeleted, isAdmin }) =
                     <div className="font-medium text-sm text-blue-400">{reply.author_name}</div>
                     <div className="flex items-center gap-2">
                         <div className="text-xs text-gray-400">
-                            {new Date(reply.created_at).toLocaleString()}
+                            {formatDate(reply.created_at)}
                         </div>
                         {isAdmin && (
                             <Button

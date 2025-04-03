@@ -6,6 +6,7 @@ import DevTalkLogo from './DevTalkLogo';
 import { Modal, ModalContent, ModalHeader, ModalBody, Chip, Card, Avatar, Button, Spinner, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@heroui/react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/apiUtils';
+import { formatDate } from '../utils/dateUtils';
 
 export default function Navbar() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -124,10 +125,6 @@ export default function Navbar() {
     const closeModal = () => {
         setShowResults(false);
         setSearchResults([]);
-    };
-
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleString();
     };
 
     const highlightSearchTerm = (text, term) => {
