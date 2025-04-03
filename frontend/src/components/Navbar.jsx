@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import SearchIcon from '@mui/icons-material/Search';
 import AccountCircleSharpIcon from '@mui/icons-material/AccountCircleSharp';
+import LogoutIcon from '@mui/icons-material/Logout';
 import DevTalkLogo from './DevTalkLogo';
 import { Modal, ModalContent, ModalHeader, ModalBody, Chip, Card, Avatar, Button, Spinner, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@heroui/react';
 import { useAuth } from '../context/AuthContext';
@@ -15,7 +16,7 @@ export default function Navbar() {
     const [isSearching, setIsSearching] = useState(false);
     const searchRef = useRef(null);
     const filtersRef = useRef(null);
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
 
     // States for users modal
     const [showUsers, setShowUsers] = useState(false);
@@ -288,6 +289,16 @@ export default function Navbar() {
                         View All Users
                     </Button>
                 )}
+                {/* Logout Button */}
+                <Button
+                    color="danger"
+                    variant="ghost"
+                    className="mr-4 flex items-center gap-1"
+                    onClick={logout}
+                >
+                    <LogoutIcon className="text-sm" />
+                    Logout
+                </Button>
                 <div className="flex flex-col items-center">
                     <AccountCircleSharpIcon className="text-gray-400 size-20 cursor-pointer hover:text-blue-500 transform hover:scale-150 transition-all" />
                     {user && (
