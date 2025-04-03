@@ -288,7 +288,12 @@ export default function Navbar() {
                         View All Users
                     </Button>
                 )}
-                <AccountCircleSharpIcon className="text-gray-400 size-20 cursor-pointer hover:text-blue-500 transform hover:scale-150 transition-all" />
+                <div className="flex flex-col items-center">
+                    <AccountCircleSharpIcon className="text-gray-400 size-20 cursor-pointer hover:text-blue-500 transform hover:scale-150 transition-all" />
+                    {user && (
+                        <span className="text-sm text-gray-300 mt-1">{user.username}</span>
+                    )}
+                </div>
             </div>
             
             {/* Search Results Modal */}
