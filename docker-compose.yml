@@ -29,10 +29,10 @@ services:
             DB_NAME: dev_talk
         # stdin_open: true
         # tty: true
-        volumes:
-            - ./backend:/app
-            - /app/node_modules
-            - uploads_data:/app/uploads
+        # volumes:
+        #     - ./backend:/app
+        #     - /app/node_modules
+        #     - uploads_data:/app/uploads
     
     phpmyadmin:
         image: phpmyadmin/phpmyadmin
@@ -50,14 +50,14 @@ services:
         build: ./frontend
         container_name: frontend
         ports:
-            - "5173:5173"
-        volumes:
-            - ./frontend:/app
-            - /app/node_modules
-        environment:
-            - CHOKIDAR_USEPOLLING=true   # Helps with file change detection in Docker
-        stdin_open: true
-        tty: true
+            - "5173:80" # 80 is default for nginx
+        # volumes:
+        #     - ./frontend:/app
+        #     - /app/node_modules
+        # environment:
+        #     - CHOKIDAR_USEPOLLING=true   # Helps with file change detection in Docker
+        # stdin_open: true
+        # tty: true
         depends_on:
             - backend
 
