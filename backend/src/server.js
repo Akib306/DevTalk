@@ -44,7 +44,7 @@ async function startServer() {
         }
         
         // Set permissions on uploads directory
-        fs.chmodSync(UPLOADS_DIR, 0o777);
+        fs.chmodSync(UPLOADS_DIR, 0o755);
         console.log('Set permissions on uploads directory');
 
         app.listen(port, () => {
