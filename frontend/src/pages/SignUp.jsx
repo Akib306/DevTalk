@@ -34,7 +34,7 @@ export default function App() {
         }
 
         // Username validation
-        if (data.name === "admin") {
+        if (data.name.toLowerCase() === "admin") {
             newErrors.name = "Nice try! Choose a different username";
         }
 
