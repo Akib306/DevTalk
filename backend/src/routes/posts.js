@@ -4,6 +4,7 @@ import { authenticateToken } from '../middleware/authMiddleware.js';
 import jwt from 'jsonwebtoken';
 import { saveImage, validateImageSize, deleteImage } from '../utils/imageUtils.js';
 import { getCurrentTimestamp } from '../utils/dateUtils.js';
+import { getUserBadge } from '../utils/userUtils.js';
 
 const router = express.Router();
 
@@ -39,6 +40,7 @@ router.get('/withReplies', async (req, res) => {
             SELECT 
                 p.*,
                 u.username as author_name,
+                u.id as author_id,
                 (SELECT COUNT(*) FROM post_ratings pr WHERE pr.post_id = p.id AND pr.rating = 'up') as upvotes,
                 (SELECT COUNT(*) FROM post_ratings pr WHERE pr.post_id = p.id AND pr.rating = 'down') as downvotes
             FROM posts p
@@ -52,6 +54,7 @@ router.get('/withReplies', async (req, res) => {
             SELECT 
                 r.*,
                 u.username as author_name,
+                u.id as author_id,
                 (SELECT COUNT(*) FROM reply_ratings rr WHERE rr.reply_id = r.id AND rr.rating = 'up') as upvotes,
                 (SELECT COUNT(*) FROM reply_ratings rr WHERE rr.reply_id = r.id AND rr.rating = 'down') as downvotes
             FROM replies r
@@ -98,14 +101,37 @@ router.get('/withReplies', async (req, res) => {
             }
         }
 
-        // Attach user's rating to posts and replies
-        posts.forEach(post => {
-            post.userRating = userPostRatings[post.id] || null;
-        });
+        // Add user badges to posts and replies
+        const userBadges = new Map();
         
-        replies.forEach(reply => {
+        // Process posts
+        for (const post of posts) {
+            // Attach user's rating
+            post.userRating = userPostRatings[post.id] || null;
+            
+            // Get and attach user badge if not already cached
+            if (!userBadges.has(post.author_id)) {
+                const badge = await getUserBadge(post.author_id);
+                userBadges.set(post.author_id, badge);
+            }
+            post.authorBadge = userBadges.get(post.author_id).badge;
+        }
+        
+        // Process replies
+        for (const reply of replies) {
+            // Attach user's rating
             reply.userRating = userReplyRatings[reply.id] || null;
-        });
+            
+            // Get and attach user badge if not already cached
+            if (!userBadges.has(reply.author_id)) {
+                const badge = await getUserBadge(reply.author_id);
+                userBadges.set(reply.author_id, badge);
+            }
+            reply.authorBadge = userBadges.get(reply.author_id).badge;
+            
+            // Initialize replies array
+            reply.replies = [];
+        }
 
         // Organize replies by post_id and parent_reply_id
         const replyMap = {};
@@ -115,7 +141,6 @@ router.get('/withReplies', async (req, res) => {
             if (!replyMap[reply.post_id]) {
                 replyMap[reply.post_id] = [];
             }
-            reply.replies = []; // Initialize nested replies array
             replyMap[reply.post_id].push(reply);
         });
         

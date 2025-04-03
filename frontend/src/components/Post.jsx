@@ -158,7 +158,18 @@ const Post = ({ post, onReply, onPostDeleted }) => {
     return (
         <Card className="mb-6 p-4 border border-gray-700 bg-gray-800/50">
             <div className="flex justify-between mb-2">
-                <div className="font-semibold text-blue-400">{post.author_name}</div>
+                <div className="flex items-center">
+                    <div className="font-semibold text-blue-400">{post.author_name}</div>
+                    {post.authorBadge && (
+                        <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
+                            post.authorBadge === 'Expert' ? 'bg-purple-500 text-white' : 
+                            post.authorBadge === 'Helper' ? 'bg-blue-500 text-white' : 
+                            'bg-gray-500 text-white'
+                        }`}>
+                            {post.authorBadge}
+                        </span>
+                    )}
+                </div>
                 <div className="flex items-center gap-2">
                     <div className="text-xs text-gray-400">
                         {formatDate(post.created_at)}

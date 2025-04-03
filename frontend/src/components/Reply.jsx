@@ -148,7 +148,18 @@ const Reply = ({ reply, depth = 0, onReply, postId, onReplyDeleted, isAdmin }) =
                 style={{ marginLeft: depth > maxDepth ? `${maxDepth * 16}px` : `${depth * 16}px` }}
             >
                 <div className="flex justify-between">
-                    <div className="font-medium text-sm text-blue-400">{reply.author_name}</div>
+                    <div className="flex items-center">
+                        <div className="font-medium text-sm text-blue-400">{reply.author_name}</div>
+                        {reply.authorBadge && (
+                            <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
+                                reply.authorBadge === 'Expert' ? 'bg-purple-500 text-white' : 
+                                reply.authorBadge === 'Helper' ? 'bg-blue-500 text-white' : 
+                                'bg-gray-500 text-white'
+                            }`}>
+                                {reply.authorBadge}
+                            </span>
+                        )}
+                    </div>
                     <div className="flex items-center gap-2">
                         <div className="text-xs text-gray-400">
                             {formatDate(reply.created_at)}
