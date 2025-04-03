@@ -147,7 +147,7 @@ const Dashboard = () => {
             {/* Padding at top for the fixed navbar and bottom for the fixed footer */}
             <div className="pt-[100px] pb-[100px] h-full flex">
                 {/* Channel list container with its own scrollbar */}
-                <div className="w-1/5 border-r border-gray-700 overflow-y-auto p-4 ml-6">
+                <div className="w-1/6 border-r border-gray-700 overflow-y-auto p-4 ml-6">
                     
                     <Button 
                         onPress={() => setIsModalOpen(true)}

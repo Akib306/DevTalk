@@ -2,6 +2,7 @@ import express from 'express';
 import db from '../db.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 import jwt from 'jsonwebtoken';
+import { saveImage, validateImageSize } from '../utils/imageUtils.js';
 
 const router = express.Router();
 
@@ -311,16 +312,40 @@ router.get('/search', async (req, res) => {
 // Protected: POST /api/posts - Create a new top-level post
 router.post('/', authenticateToken, async (req, res) => {
     try {
-        const { channel_id, content, image_url } = req.body;
+        const { channel_id, content, image } = req.body;
         const user_id = req.user.userId;
+        
         if (!channel_id || !user_id || !content) {
             return res.status(400).json({ message: 'channel_id, user_id, and content are required.' });
         }
+        
+        let image_url = null;
+        
+        // Handle image if provided
+        if (image) {
+            // Validate image size
+            if (!validateImageSize(image)) {
+                return res.status(400).json({ message: 'Image size must be 5MB or less.' });
+            }
+            
+            // Save the image
+            image_url = saveImage(image);
+            
+            if (!image_url) {
+                return res.status(400).json({ message: 'Failed to save image. Please try again.' });
+            }
+        }
+        
         const [result] = await db.query(
             'INSERT INTO posts (channel_id, user_id, content, image_url) VALUES (?, ?, ?, ?)',
-            [channel_id, user_id, content, image_url || null]
+            [channel_id, user_id, content, image_url]
         );
-        res.status(201).json({ post_id: result.insertId, message: 'Post created successfully.' });
+        
+        res.status(201).json({ 
+            post_id: result.insertId, 
+            message: 'Post created successfully.',
+            image_url: image_url 
+        });
     } catch (error) {
         console.error('Error creating post:', error);
         res.status(500).json({ message: 'Error creating post.' });
@@ -330,16 +355,40 @@ router.post('/', authenticateToken, async (req, res) => {
 // Protected: POST /api/posts/reply - Create a reply to a post or another reply
 router.post('/reply', authenticateToken, async (req, res) => {
     try {
-        const { post_id, parent_reply_id, content, image_url } = req.body;
+        const { post_id, parent_reply_id, content, image } = req.body;
         const user_id = req.user.userId;
+        
         if (!post_id || !user_id || !content) {
             return res.status(400).json({ message: 'post_id, user_id, and content are required.' });
         }
+        
+        let image_url = null;
+        
+        // Handle image if provided
+        if (image) {
+            // Validate image size
+            if (!validateImageSize(image)) {
+                return res.status(400).json({ message: 'Image size must be 5MB or less.' });
+            }
+            
+            // Save the image
+            image_url = saveImage(image);
+            
+            if (!image_url) {
+                return res.status(400).json({ message: 'Failed to save image. Please try again.' });
+            }
+        }
+        
         const [result] = await db.query(
             'INSERT INTO replies (post_id, parent_reply_id, user_id, content, image_url) VALUES (?, ?, ?, ?, ?)',
-            [post_id, parent_reply_id || null, user_id, content, image_url || null]
+            [post_id, parent_reply_id || null, user_id, content, image_url]
         );
-        res.status(201).json({ reply_id: result.insertId, message: 'Reply created successfully.' });
+        
+        res.status(201).json({ 
+            reply_id: result.insertId, 
+            message: 'Reply created successfully.',
+            image_url: image_url
+        });
     } catch (error) {
         console.error('Error creating reply:', error);
         res.status(500).json({ message: 'Error creating reply.' });

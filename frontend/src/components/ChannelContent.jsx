@@ -54,18 +54,25 @@ const ChannelContent = ({ channel, onBack }) => {
         }
     };
 
-    const handleReply = async (postId, parentReplyId, content) => {
+    const handleReply = async (postId, parentReplyId, content, image) => {
         try {
+            const replyData = {
+                post_id: postId,
+                parent_reply_id: parentReplyId,
+                content
+            };
+            
+            // Add image if present
+            if (image) {
+                replyData.image = image;
+            }
+            
             const response = await apiRequest('http://localhost:3000/api/posts/reply', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    post_id: postId,
-                    parent_reply_id: parentReplyId,
-                    content
-                })
+                body: JSON.stringify(replyData)
             });
             
             if (response.ok) {

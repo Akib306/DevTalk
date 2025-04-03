@@ -4,6 +4,7 @@ import Reply from './Reply';
 import ArrowCircleUpIcon from '@mui/icons-material/ArrowCircleUp';
 import ArrowCircleDownIcon from '@mui/icons-material/ArrowCircleDown';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ImageIcon from '@mui/icons-material/Image';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/apiUtils';
 
@@ -11,21 +12,75 @@ const Post = ({ post, onReply, onPostDeleted }) => {
     const [isReplying, setIsReplying] = useState(false);
     const [showReplies, setShowReplies] = useState(true); // Initially show replies
     const [replyContent, setReplyContent] = useState('');
+    const [image, setImage] = useState(null);
     const [upvotes, setUpvotes] = useState(post.upvotes || 0);
     const [downvotes, setDownvotes] = useState(post.downvotes || 0);
     const [userRating, setUserRating] = useState(post.userRating);
     const { user } = useAuth();
     const isAdmin = user && user.role === 'admin';
+    const fileInputRef = React.useRef(null);
     
     const hasReplies = post.replies && post.replies.length > 0;
+    
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.match('image.*')) {
+            alert("Please select an image file (png, jpg, jpeg, gif)");
+            return;
+        }
+
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+            alert("Image size must be less than 5MB");
+            return;
+        }
+
+        // Read the file and convert to base64
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            setImage(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleRemoveImage = () => {
+        setImage(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
     
     const handleReplySubmit = async () => {
         if (!replyContent.trim()) return;
         
-        await onReply(post.id, null, replyContent); // parentReplyId is null for direct post replies
-        setReplyContent('');
-        setIsReplying(false);
-        setShowReplies(true); // Automatically show replies after posting
+        try {
+            const replyData = {
+                post_id: post.id,
+                parent_reply_id: null, // parentReplyId is null for direct post replies
+                content: replyContent
+            };
+            
+            // Add image if present
+            if (image) {
+                replyData.image = image;
+            }
+            
+            await onReply(post.id, null, replyContent, image);
+            setReplyContent('');
+            setImage(null);
+            setIsReplying(false);
+            setShowReplies(true); // Automatically show replies after posting
+            
+            // Reset file input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        } catch (error) {
+            console.error('Error submitting reply:', error);
+        }
     };
 
     const handleDeletePost = async () => {
@@ -121,7 +176,19 @@ const Post = ({ post, onReply, onPostDeleted }) => {
                 </div>
             </div>
             
+            {/* Post content */}
             <div className="text-lg mb-4">{post.content}</div>
+            
+            {/* Post image (if any) */}
+            {post.image_url && (
+                <div className="mb-4">
+                    <img 
+                        src={`http://localhost:3000${post.image_url}`} 
+                        alt="Post image" 
+                        className="max-h-96 rounded-lg border border-gray-700"
+                    />
+                </div>
+            )}
             
             <div className="flex items-center justify-between border-t border-gray-700 pt-3">
                 <div className="flex gap-2">
@@ -186,27 +253,75 @@ const Post = ({ post, onReply, onPostDeleted }) => {
                         maxRows={4}
                         className="w-full"
                     />
-                    <div className="flex justify-end gap-2 mt-2">
-                        <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            color="danger"
-                            onPress={() => {
-                                setIsReplying(false);
-                                setReplyContent('');
-                            }}
-                        >
-                            Cancel
-                        </Button>
-                        <Button 
-                            size="sm" 
-                            color="primary"
-                            onPress={handleReplySubmit}
-                            isDisabled={!replyContent.trim()}
-                        >
-                            Post Reply
-                        </Button>
+                    
+                    {/* Image upload for reply */}
+                    <div className="mt-2 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                className="hidden"
+                                ref={fileInputRef}
+                            />
+                            <Button
+                                size="sm"
+                                startContent={<ImageIcon />}
+                                color="secondary"
+                                variant="ghost"
+                                onClick={() => fileInputRef.current.click()}
+                            >
+                                Add Image
+                            </Button>
+                            <span className="text-gray-400 text-xs">Max size: 5MB</span>
+                        </div>
+                        
+                        <div className="flex justify-end gap-2">
+                            <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                color="danger"
+                                onPress={() => {
+                                    setIsReplying(false);
+                                    setReplyContent('');
+                                    setImage(null);
+                                    if (fileInputRef.current) {
+                                        fileInputRef.current.value = '';
+                                    }
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                size="sm" 
+                                color="primary"
+                                onPress={handleReplySubmit}
+                                isDisabled={!replyContent.trim()}
+                            >
+                                Post Reply
+                            </Button>
+                        </div>
                     </div>
+                    
+                    {/* Image preview */}
+                    {image && (
+                        <div className="mt-3 relative">
+                            <img 
+                                src={image} 
+                                alt="Preview" 
+                                className="max-h-64 rounded-lg border border-gray-700"
+                            />
+                            <Button 
+                                size="sm"
+                                color="danger"
+                                variant="ghost"
+                                className="absolute top-2 right-2"
+                                onPress={handleRemoveImage}
+                            >
+                                Remove
+                            </Button>
+                        </div>
+                    )}
                 </div>
             )}
             
