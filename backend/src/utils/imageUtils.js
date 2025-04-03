@@ -3,9 +3,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const UPLOADS_FOLDER = path.join(__dirname, '../../uploads');
+// Define the uploads folder path
+// Use an absolute path for Docker container
+const UPLOADS_FOLDER = '/app/uploads';
 
 // Ensure the uploads directory exists
 if (!fs.existsSync(UPLOADS_FOLDER)) {
