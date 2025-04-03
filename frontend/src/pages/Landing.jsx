@@ -2,6 +2,11 @@ import {Navbar, NavbarBrand, NavbarContent, NavbarItem, Button} from "@heroui/re
 import { useNavigate } from "react-router-dom";
 import logo from "/favicon/favicon.svg";
 import Footer from "../components/Footer";
+import AppleIcon from '@mui/icons-material/Apple';
+import GoogleIcon from '@mui/icons-material/Google';
+import MicrosoftIcon from '@mui/icons-material/Microsoft';
+import GitHubIcon from '@mui/icons-material/GitHub';
+
 export default function LandingPage() {
     const navigate = useNavigate();
     return (
@@ -33,14 +38,14 @@ export default function LandingPage() {
                 {/* CONTENT CONTAINER */}
                 <div className="max-w-7xl mx-auto px-4 py-24 sm:py-32">
                     <h1 className="text-5xl font-bold">
-                    Where developers <br />
+                        Where problems become <br />
                     <span className="text-7xl sm:text-8xl font-extrabold text-blue-400">
-                        collaborate and resolve
+                        shared solutions.
                     </span>
                     </h1>
                     <p className="mt-6 text-xl text-gray-300 max-w-2xl mx-auto">
-                    DevTalk is a channel-based platform built for developers to ask programming questions,
-                    share solutions, and grow together — with nested replies, search, and ratings to make help easier to find.
+                        Ask smarter. Solve faster. Learn together.
+                        DevTalk helps developers ask better questions, find trusted answers, and grow their skills — all in one collaborative space.
                     </p>
                     <div className="mt-10 flex flex-col items-center gap-6">
                         <Button
@@ -51,15 +56,14 @@ export default function LandingPage() {
                         >
                             Sign Up
                         </Button>
-                        {/* Skeleton video card */}
-                        <div className="relative w-[720px] h-[380px] bg-neutral-800 rounded-xl overflow-hidden shadow-lg">
-                            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-white opacity-80" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M8 5v14l11-7z" />
-                                </svg>
-                            </div>
-                            <div className="absolute inset-0">
-                                <div className="h-full w-full bg-gradient-to-r from-neutral-700 via-neutral-800 to-neutral-700 animate-pulse" />
+                        {/* App preview image */}
+                        <div className="relative w-[720px] rounded-xl overflow-hidden shadow-2xl border border-blue-700/30">
+                            <div className="p-1 bg-gradient-to-r from-blue-900/30 to-indigo-900/30 backdrop-blur-sm">
+                                <img 
+                                    src="/app-preview.png" 
+                                    alt="DevTalk App Preview" 
+                                    className="w-full h-auto rounded-lg object-cover"
+                                />
                             </div>
                         </div>
                     </div>
@@ -94,10 +98,11 @@ export default function LandingPage() {
                     </div>
                 </div>
 
-                <div className="flex justify-center gap-6 opacity-80 grayscale">
-                    <img src="/public/favicon/apple-touch-icon.png" alt="Apple" className="h-6" />
-                    <img src="/public/favicon/favicon-96x96.png" alt="Google" className="h-6" />
-                    <img src="/public/favicon/favicon.svg" alt="Meta" className="h-6" />
+                <div className="flex justify-center gap-8 opacity-80">
+                    <AppleIcon className="h-8 w-8 text-gray-300" />
+                    <GoogleIcon className="h-8 w-8 text-gray-300" />
+                    <MicrosoftIcon className="h-8 w-8 text-gray-300" />
+                    <GitHubIcon className="h-8 w-8 text-gray-300" />
                 </div>
             </section>
             <Footer />
