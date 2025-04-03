@@ -2,7 +2,7 @@ import express from 'express';
 import db from '../db.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 import jwt from 'jsonwebtoken';
-import { saveImage, validateImageSize } from '../utils/imageUtils.js';
+import { saveImage, validateImageSize, deleteImage } from '../utils/imageUtils.js';
 
 const router = express.Router();
 
@@ -473,19 +473,32 @@ router.post('/reply/rate', authenticateToken, async (req, res) => {
 
 // Helper function to recursively delete replies
 async function deleteChildReplies(replyId) {
-    // Get all child replies
-    const [childReplies] = await db.query('SELECT id FROM replies WHERE parent_reply_id = ?', [replyId]);
-    
-    // Recursively delete each child's children
-    for (const child of childReplies) {
-        await deleteChildReplies(child.id);
+    try {
+        // Get the reply to check for image
+        const [reply] = await db.query('SELECT image_url FROM replies WHERE id = ?', [replyId]);
+        
+        // Delete the image file if it exists
+        if (reply.length > 0 && reply[0].image_url) {
+            deleteImage(reply[0].image_url);
+        }
+        
+        // Get all child replies
+        const [childReplies] = await db.query('SELECT id, image_url FROM replies WHERE parent_reply_id = ?', [replyId]);
+        
+        // Recursively delete each child's children
+        for (const child of childReplies) {
+            await deleteChildReplies(child.id);
+        }
+        
+        // Delete ratings for this reply
+        await db.query('DELETE FROM reply_ratings WHERE reply_id = ?', [replyId]);
+        
+        // Delete the reply itself
+        await db.query('DELETE FROM replies WHERE id = ?', [replyId]);
+    } catch (error) {
+        console.error('Error in deleteChildReplies:', error);
+        throw error;
     }
-    
-    // Delete ratings for this reply
-    await db.query('DELETE FROM reply_ratings WHERE reply_id = ?', [replyId]);
-    
-    // Delete the reply itself
-    await db.query('DELETE FROM replies WHERE id = ?', [replyId]);
 }
 
 // DELETE /api/posts/:id - Delete a post with all its replies (admin only)
@@ -504,11 +517,26 @@ router.delete('/:id', authenticateToken, async (req, res) => {
         await db.query('START TRANSACTION');
         
         try {
-            // First, get all replies for this post
-            const [replies] = await db.query('SELECT id FROM replies WHERE post_id = ?', [postId]);
+            // First, get the post to check for image
+            const [post] = await db.query('SELECT image_url FROM posts WHERE id = ?', [postId]);
             
-            // Delete all ratings for each reply
+            // If post doesn't exist, return 404
+            if (post.length === 0) {
+                await db.query('ROLLBACK');
+                return res.status(404).json({ message: 'Post not found.' });
+            }
+            
+            // Get all replies for this post to delete their images
+            const [replies] = await db.query('SELECT id, image_url FROM replies WHERE post_id = ?', [postId]);
+            
+            // Delete all reply images and ratings
             for (const reply of replies) {
+                // Delete image file if it exists
+                if (reply.image_url) {
+                    deleteImage(reply.image_url);
+                }
+                
+                // Delete ratings
                 await db.query('DELETE FROM reply_ratings WHERE reply_id = ?', [reply.id]);
             }
             
@@ -518,13 +546,13 @@ router.delete('/:id', authenticateToken, async (req, res) => {
             // Delete all ratings for this post
             await db.query('DELETE FROM post_ratings WHERE post_id = ?', [postId]);
             
+            // Delete the post's image file if it exists
+            if (post[0].image_url) {
+                deleteImage(post[0].image_url);
+            }
+            
             // Finally, delete the post
             const [result] = await db.query('DELETE FROM posts WHERE id = ?', [postId]);
-            
-            if (result.affectedRows === 0) {
-                await db.query('ROLLBACK');
-                return res.status(404).json({ message: 'Post not found.' });
-            }
             
             await db.query('COMMIT');
             
@@ -555,7 +583,7 @@ router.delete('/reply/:id', authenticateToken, async (req, res) => {
         await db.query('START TRANSACTION');
         
         try {
-            // Delete this reply and all its children recursively
+            // Delete this reply and all its children recursively (which now includes image deletion)
             await deleteChildReplies(replyId);
             
             await db.query('COMMIT');

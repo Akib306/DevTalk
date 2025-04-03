@@ -79,4 +79,40 @@ export const validateImageSize = (base64Image) => {
     const fileSizeInMB = fileSizeInBytes / (1024 * 1024);
     
     return fileSizeInMB <= 5;
+};
+
+/**
+ * Deletes an image file from the uploads directory
+ * @param {string} imageUrl - The URL path of the image to delete (e.g., /uploads/filename.jpg)
+ * @returns {boolean} - True if deletion was successful, false otherwise
+ */
+export const deleteImage = (imageUrl) => {
+    try {
+        // If no image URL is provided, just return true
+        if (!imageUrl) return true;
+        
+        // Make sure the URL starts with /uploads/ to prevent directory traversal
+        if (!imageUrl.startsWith('/uploads/')) {
+            console.error('Invalid image URL format:', imageUrl);
+            return false;
+        }
+        
+        // Get just the filename from the URL
+        const filename = path.basename(imageUrl);
+        const filePath = path.join(UPLOADS_FOLDER, filename);
+        
+        // Check if file exists
+        if (!fs.existsSync(filePath)) {
+            console.warn('Image file not found:', filePath);
+            return false;
+        }
+        
+        // Delete the file
+        fs.unlinkSync(filePath);
+        console.log('Image file deleted:', filePath);
+        return true;
+    } catch (error) {
+        console.error('Error deleting image file:', error);
+        return false;
+    }
 }; 
