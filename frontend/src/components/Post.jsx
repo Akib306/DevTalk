@@ -273,7 +273,7 @@ const Post = ({ post, onReply, onPostDeleted }) => {
                             >
                                 Add Image
                             </Button>
-                            <span className="text-gray-400 text-xs">Max size: 5MB</span>
+                            <span className="text-gray-400 text-xs ml-2">Max size: 5MB</span>
                         </div>
                         
                         <div className="flex justify-end gap-2">
@@ -318,7 +318,7 @@ const Post = ({ post, onReply, onPostDeleted }) => {
                                 className="absolute top-2 right-2"
                                 onPress={handleRemoveImage}
                             >
-                                Remove
+                                Remove Image
                             </Button>
                         </div>
                     )}

@@ -309,7 +309,7 @@ const Reply = ({ reply, depth = 0, onReply, postId, onReplyDeleted, isAdmin }) =
                                     className="absolute top-2 right-2"
                                     onPress={handleRemoveImage}
                                 >
-                                    Remove
+                                    Remove Image
                                 </Button>
                             </div>
                         )}

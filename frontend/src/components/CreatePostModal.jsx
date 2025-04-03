@@ -8,6 +8,7 @@ const CreatePostModal = ({ isOpen, onClose, channelId, onPostCreated }) => {
     const [image, setImage] = useState(null);
     const [errors, setErrors] = useState({});
     const [isLoading, setIsLoading] = useState(false);
+    const [imageLoading, setImageLoading] = useState(false);
     const fileInputRef = useRef(null);
 
     const validatePost = (text) => {
@@ -38,11 +39,20 @@ const CreatePostModal = ({ isOpen, onClose, channelId, onPostCreated }) => {
         }
 
         // Read the file and convert to base64
+        setImageLoading(true);
         const reader = new FileReader();
+        
         reader.onload = (e) => {
             setImage(e.target.result);
             setErrors((prev) => ({ ...prev, image: null }));
+            setImageLoading(false);
         };
+        
+        reader.onerror = () => {
+            setErrors({ image: "Failed to load image. Please try a different file." });
+            setImageLoading(false);
+        };
+        
         reader.readAsDataURL(file);
     };
 
@@ -115,7 +125,7 @@ const CreatePostModal = ({ isOpen, onClose, channelId, onPostCreated }) => {
 
     return (
         <Modal isOpen={isOpen} onClose={handleClose}>
-            <ModalContent className="bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-gray-700/50 w-[500px]">
+            <ModalContent className="bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-10 border border-gray-700/50 w-[700px] max-h-[90vh]">
                 <ModalHeader className="text-2xl font-bold text-center text-white">
                     Create New Post
                 </ModalHeader>
@@ -136,8 +146,8 @@ const CreatePostModal = ({ isOpen, onClose, channelId, onPostCreated }) => {
                             onValueChange={setContent}
                             errorMessage={errors.content}
                             isInvalid={!!errors.content}
-                            minRows={4}
-                            maxRows={8}
+                            minRows={6}
+                            maxRows={12}
                             className="w-full"
                         />
                         <p className="text-gray-400 text-sm mt-1">Character limit: 2000</p>
@@ -158,6 +168,7 @@ const CreatePostModal = ({ isOpen, onClose, channelId, onPostCreated }) => {
                                         color="secondary"
                                         variant="ghost"
                                         onClick={() => fileInputRef.current.click()}
+                                        isDisabled={imageLoading}
                                     >
                                         Add Image
                                     </Button>
@@ -165,32 +176,42 @@ const CreatePostModal = ({ isOpen, onClose, channelId, onPostCreated }) => {
                                 {errors.image && (
                                     <div className="text-red-500 text-sm">{errors.image}</div>
                                 )}
-                                <div className="text-gray-400 text-sm">Max size: 5MB</div>
+                                <div className="text-gray-400 text-sm ml-2">Max size: 5MB</div>
                             </div>
                             
-                            {/* Preview the image */}
+                            {/* Remove button and preview section */}
                             {image && (
-                                <div className="mt-3 relative">
-                                    <img 
-                                        src={image} 
-                                        alt="Preview" 
-                                        className="max-h-64 rounded-lg border border-gray-700"
-                                    />
-                                    <Button 
-                                        size="sm"
-                                        color="danger"
-                                        variant="ghost"
-                                        className="absolute top-2 right-2"
-                                        onPress={handleRemoveImage}
-                                    >
-                                        Remove
-                                    </Button>
+                                <>
+                                    <div className="mt-2">
+                                        <Button 
+                                            size="sm"
+                                            color="danger"
+                                            variant="ghost"
+                                            onPress={handleRemoveImage}
+                                        >
+                                            Remove Image
+                                        </Button>
+                                    </div>
+                                    <div className="mt-3 mb-6 overflow-auto max-h-[300px]">
+                                        <img 
+                                            src={image} 
+                                            alt="Preview" 
+                                            className="w-full object-contain rounded-lg border border-gray-700"
+                                            onError={() => setErrors({ image: "Failed to display image. The file might be corrupted." })}
+                                        />
+                                    </div>
+                                </>
+                            )}
+                            
+                            {imageLoading && (
+                                <div className="mt-3 text-center text-blue-400">
+                                    Loading image preview...
                                 </div>
                             )}
                         </div>
                     </Form>
                 </ModalBody>
-                <ModalFooter>
+                <ModalFooter className="flex justify-center gap-4">
                     <Button color="danger" variant="ghost" onPress={handleClose} isDisabled={isLoading}>
                         Cancel
                     </Button>
