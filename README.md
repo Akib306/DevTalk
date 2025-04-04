@@ -42,3 +42,6 @@ The system creates a default admin account with the following credentials:
 To access the container shells for development:
 - Frontend: `docker compose exec frontend sh`
 - Backend: `docker compose exec backend sh` 
+
+## Demo Video
+https://www.youtube.com/watch?v=_ONlaDmpD_Q&ab_channel=Akib
